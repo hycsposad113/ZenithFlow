@@ -9,9 +9,9 @@ import { FocusTab } from './components/FocusTab';
 import { Sidebar } from './components/Sidebar';
 import { CalendarRail } from './components/CalendarRail';
 import { Login } from './components/Login';
-import { Task, Transaction, CalendarEvent } from './types';
+import { Task, Transaction, CalendarEvent, DailyStats } from './types';
 import { Home, BarChart2, TrendingUp, Calendar, Target, Timer, Clock } from 'lucide-react';
-import { initGoogleAuth, signIn, fetchGoogleEvents } from './services/googleCalendarService';
+import { initGoogleAuth, signIn, fetchGoogleEvents, syncDailyStatsToSheet } from './services/googleCalendarService';
 
 enum Tab {
   PLANNING = 'planning',
@@ -39,6 +39,7 @@ interface AppState {
   analysis: ReflectionAnalysis | null;
   dailyAnalyses: Record<string, ReflectionAnalysis>;
   weeklyAnalyses: Record<string, any>;
+  dailyStats: Record<string, DailyStats>;
   totalFocusMinutes: number;
 }
 
@@ -49,7 +50,7 @@ const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<Tab>(Tab.PLANNING);
   const [isTimelineOpen, setIsTimelineOpen] = useState(false);
   const [isGoogleSynced, setIsGoogleSynced] = useState(false);
-  
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -59,6 +60,7 @@ const App: React.FC = () => {
   const [analysis, setAnalysis] = useState<ReflectionAnalysis | null>(null);
   const [dailyAnalyses, setDailyAnalyses] = useState<Record<string, ReflectionAnalysis>>({});
   const [weeklyAnalyses, setWeeklyAnalyses] = useState<Record<string, any>>({});
+  const [dailyStats, setDailyStats] = useState<Record<string, DailyStats>>({});
   const [totalFocusMinutes, setTotalFocusMinutes] = useState(0);
 
   const historyRef = useRef<AppState[]>([]);
@@ -72,6 +74,8 @@ const App: React.FC = () => {
     }
     return false;
   };
+
+  // ... (keep syncGoogle and useEffect) ...
 
   const syncGoogle = async () => {
     try {
@@ -105,10 +109,11 @@ const App: React.FC = () => {
       analysis: analysis ? { ...analysis } : null,
       dailyAnalyses: { ...dailyAnalyses },
       weeklyAnalyses: { ...weeklyAnalyses },
+      dailyStats: { ...dailyStats },
       totalFocusMinutes,
     };
     historyRef.current = [...historyRef.current.slice(-49), snapshot];
-  }, [tasks, transactions, events, goals, routine, review, analysis, dailyAnalyses, weeklyAnalyses, totalFocusMinutes]);
+  }, [tasks, transactions, events, goals, routine, review, analysis, dailyAnalyses, weeklyAnalyses, dailyStats, totalFocusMinutes]);
 
   const undo = useCallback(() => {
     if (historyRef.current.length === 0) return;
@@ -123,9 +128,12 @@ const App: React.FC = () => {
     setAnalysis(lastState.analysis);
     setDailyAnalyses(lastState.dailyAnalyses);
     setWeeklyAnalyses(lastState.weeklyAnalyses);
+    setDailyStats(lastState.dailyStats);
     setTotalFocusMinutes(lastState.totalFocusMinutes);
     setTimeout(() => { isUndoingRef.current = false; }, 10);
   }, []);
+
+  // ... (keep setUndoable wrappers) ...
 
   const setUndoableTasks = (newTasks: React.SetStateAction<Task[]>) => {
     saveToHistory();
@@ -140,6 +148,42 @@ const App: React.FC = () => {
   const setUndoableRoutine = (newRoutine: React.SetStateAction<{ wake: string; meditation: boolean; exercise: boolean }>) => {
     saveToHistory();
     setRoutine(newRoutine);
+  };
+
+  // Sync Routine to Daily Stats
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    setDailyStats(prev => ({
+      ...prev,
+      [today]: {
+        date: today,
+        wakeTime: routine.wake,
+        focusMinutes: prev[today]?.focusMinutes || 0,
+        completionRate: prev[today]?.completionRate || 0 // Re-calc elsewhere if needed, or derived
+      }
+    }));
+  }, [routine.wake]);
+
+  // Wrapper for Focus Updates to track daily delta
+  const updateFocusMinutes = (callback: React.SetStateAction<number>) => {
+    setTotalFocusMinutes(prev => {
+      const newVal = typeof callback === 'function' ? (callback as Function)(prev) : callback;
+      const delta = newVal - prev;
+      if (delta > 0) {
+        const today = new Date().toISOString().split('T')[0];
+        setDailyStats(stats => ({
+          ...stats,
+          [today]: {
+            ...stats[today],
+            date: today,
+            wakeTime: stats[today]?.wakeTime || routine.wake,
+            focusMinutes: (stats[today]?.focusMinutes || 0) + delta,
+            completionRate: stats[today]?.completionRate || 0
+          }
+        }));
+      }
+      return newVal;
+    });
   };
 
   useEffect(() => {
@@ -183,9 +227,9 @@ const App: React.FC = () => {
         <main className="flex-1 flex flex-col min-w-0 p-4 md:p-10 overflow-hidden pb-20 md:pb-10">
           <div className="flex-1 overflow-y-auto scrollbar-hide">
             {currentTab === Tab.PLANNING && (
-              <PlanningTab 
-                tasks={tasks} 
-                setTasks={setUndoableTasks} 
+              <PlanningTab
+                tasks={tasks}
+                setTasks={setUndoableTasks}
                 events={events}
                 setEvents={setUndoableEvents}
                 routine={routine}
@@ -197,18 +241,38 @@ const App: React.FC = () => {
             )}
             {currentTab === Tab.REFLECTION && (
               <div className="max-w-4xl mx-auto w-full">
-                <ReflectionTab 
-                  tasks={tasks} 
-                  setTasks={setUndoableTasks} 
-                  analysis={analysis} 
+                <ReflectionTab
+                  tasks={tasks}
+                  setTasks={setUndoableTasks}
+                  analysis={analysis}
                   setAnalysis={(newAnalysis) => {
                     setAnalysis(newAnalysis as any);
                     if (newAnalysis) {
                       const today = new Date().toISOString().split('T')[0];
                       setDailyAnalyses(prev => ({ ...prev, [today]: newAnalysis as any }));
+
+                      // Auto-sync to Google Sheet
+                      const currentStats = dailyStats[today] || {
+                        date: today,
+                        wakeTime: routine.wake,
+                        focusMinutes: 0,
+                        completionRate: 0
+                      };
+
+                      // Recalculate completion just to be sure
+                      const todayTasks = tasks.filter(t => t.date === today && t.origin !== 'template');
+                      const completed = todayTasks.filter(t => t.status === 'Completed').length;
+                      const total = todayTasks.length;
+                      const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+                      syncDailyStatsToSheet(today, {
+                        wakeTime: routine.wake,
+                        focusMinutes: currentStats.focusMinutes,
+                        completionRate: rate
+                      }, newAnalysis as any).then(() => console.log('Synced to Sheet')).catch(e => console.error(e));
                     }
-                  }} 
-                  knowledge={[]} 
+                  }}
+                  knowledge={[]}
                 />
               </div>
             )}
@@ -219,9 +283,9 @@ const App: React.FC = () => {
             )}
             {currentTab === Tab.MONTHLY && (
               <div className="w-full h-full">
-                <MonthlyTab 
-                  events={events} 
-                  setEvents={setUndoableEvents} 
+                <MonthlyTab
+                  events={events}
+                  setEvents={setUndoableEvents}
                   tasks={tasks}
                   setTasks={setUndoableTasks}
                   dailyAnalyses={dailyAnalyses}
@@ -231,13 +295,14 @@ const App: React.FC = () => {
             )}
             {currentTab === Tab.WEEKLY && (
               <div className="w-full h-full">
-                <WeeklyTab 
-                  events={events} 
-                  setEvents={setUndoableEvents} 
-                  tasks={tasks} 
+                <WeeklyTab
+                  events={events}
+                  setEvents={setUndoableEvents}
+                  tasks={tasks}
                   setTasks={setUndoableTasks}
                   dailyAnalyses={dailyAnalyses}
                   weeklyAnalyses={weeklyAnalyses}
+                  dailyStats={dailyStats}
                   onWeeklySynthesis={(weekStart, result) => {
                     setWeeklyAnalyses(prev => ({ ...prev, [weekStart]: result }));
                   }}
@@ -246,9 +311,9 @@ const App: React.FC = () => {
             )}
             {currentTab === Tab.FOCUS && (
               <div className="w-full h-full">
-                <FocusTab 
+                <FocusTab
                   totalFocusMinutes={totalFocusMinutes}
-                  setTotalFocusMinutes={setTotalFocusMinutes}
+                  setTotalFocusMinutes={updateFocusMinutes}
                 />
               </div>
             )}
@@ -262,18 +327,18 @@ const App: React.FC = () => {
         {isTimelineOpen && (
           <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-xl animate-fade-in flex flex-col xl:hidden">
             <div className="flex justify-between items-center p-6 border-b border-white/10">
-               <h3 className="font-bodoni font-bold text-xl">Timeline</h3>
-               <button onClick={() => setIsTimelineOpen(false)} className="glass-card p-2 rounded-full">
-                 <Clock className="rotate-45" size={24} />
-               </button>
+              <h3 className="font-bodoni font-bold text-xl">Timeline</h3>
+              <button onClick={() => setIsTimelineOpen(false)} className="glass-card p-2 rounded-full">
+                <Clock className="rotate-45" size={24} />
+              </button>
             </div>
             <div className="flex-1 overflow-hidden">
-               <CalendarRail tasks={tasks} setTasks={setUndoableTasks} events={events} setEvents={setUndoableEvents} isMobile />
+              <CalendarRail tasks={tasks} setTasks={setUndoableTasks} events={events} setEvents={setUndoableEvents} isMobile />
             </div>
           </div>
         )}
 
-        <button 
+        <button
           onClick={() => setIsTimelineOpen(true)}
           className="xl:hidden fixed bottom-24 right-6 w-14 h-14 bg-white text-[#c0373f] rounded-full shadow-2xl flex items-center justify-center z-[50] animate-bounce"
         >
@@ -282,7 +347,7 @@ const App: React.FC = () => {
 
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-20 glass-card-dark border-t border-white/10 flex items-center justify-around px-4 z-[90] pb-env(safe-area-inset-bottom)">
           {mobileNavItems.map((item) => (
-            <button 
+            <button
               key={item.id}
               onClick={() => setCurrentTab(item.id)}
               className={`flex flex-col items-center gap-1 transition-all ${currentTab === item.id ? 'text-white' : 'text-white/40'}`}
@@ -291,7 +356,7 @@ const App: React.FC = () => {
               <span className="text-[10px] font-bold uppercase tracking-widest">{item.label}</span>
             </button>
           ))}
-          <button 
+          <button
             onClick={() => setCurrentTab(currentTab === Tab.MONTHLY ? Tab.PLANNING : Tab.MONTHLY)}
             className={`flex flex-col items-center gap-1 transition-all ${[Tab.MONTHLY, Tab.FOCUS].includes(currentTab) ? 'text-white' : 'text-white/40'}`}
           >

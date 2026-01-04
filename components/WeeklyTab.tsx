@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { CalendarEvent, EventType, Task, TaskType, TaskStatus } from '../types';
+import { CalendarEvent, EventType, Task, TaskType, TaskStatus, DailyStats } from '../types';
 import { ChevronLeft, ChevronRight, Plus, X, Clock, Brain, Sparkles, ChevronRight as ArrowIcon } from 'lucide-react';
 import { Button } from './Button';
 import { synthesizePeriodPerformance } from '../services/geminiService';
@@ -12,18 +12,19 @@ interface WeeklyTabProps {
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   dailyAnalyses: Record<string, any>;
   weeklyAnalyses?: Record<string, any>;
+  dailyStats: Record<string, DailyStats>;
   onWeeklySynthesis?: (weekStart: string, result: any) => void;
 }
 
-export const WeeklyTab: React.FC<WeeklyTabProps> = ({ 
-  events, setEvents, tasks, setTasks, dailyAnalyses, weeklyAnalyses = {}, onWeeklySynthesis 
+export const WeeklyTab: React.FC<WeeklyTabProps> = ({
+  events, setEvents, tasks, setTasks, dailyAnalyses, weeklyAnalyses = {}, dailyStats, onWeeklySynthesis
 }) => {
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     const d = new Date();
     const day = d.getDay();
     const diff = d.getDate() - day + (day === 0 ? -6 : 1);
     const start = new Date(d.setDate(diff));
-    start.setHours(0,0,0,0);
+    start.setHours(0, 0, 0, 0);
     return start;
   });
 
@@ -31,13 +32,20 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loadingSynthesis, setLoadingSynthesis] = useState(false);
-  
-  const [formData, setFormData] = useState({ 
-    title: '', 
-    type: 'Other', 
+
+  const [formData, setFormData] = useState({
+    title: '',
+    type: 'Other',
     startTime: '09:00',
     durationMinutes: 60,
   });
+
+  const formatDateISO = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   const weekDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {
@@ -49,26 +57,44 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({
 
   const weekInsights = useMemo(() => {
     return weekDays.map(day => {
-      const iso = day.toISOString().split('T')[0];
+      const iso = formatDateISO(day);
       return { date: iso, insight: dailyAnalyses[iso] || null };
     }).filter(item => item.insight);
   }, [weekDays, dailyAnalyses]);
 
-  const formatDateISO = (d: Date) => {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
+  const weekStats = useMemo(() => {
+    return weekDays.map(day => {
+      const iso = formatDateISO(day);
+
+      // Calculate task completion from tasks array
+      const daysTasks = tasks.filter(t => t.date === iso && t.origin !== 'template'); // Filter correctly? Origin check or just date.
+      const completed = daysTasks.filter(t => t.status === TaskStatus.COMPLETED).length;
+      const total = daysTasks.length;
+      const calculatedCompletion = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+      const stat = dailyStats[iso];
+
+      return {
+        date: iso,
+        wakeTime: stat?.wakeTime || 'N/A',
+        focusMinutes: stat?.focusMinutes || 0,
+        completionRate: calculatedCompletion
+      };
+    });
+  }, [weekDays, tasks, dailyStats]);
 
   const currentWeekKey = useMemo(() => formatDateISO(currentWeekStart), [currentWeekStart]);
   const currentWeeklySummary = useMemo(() => weeklyAnalyses[currentWeekKey] || null, [weeklyAnalyses, currentWeekKey]);
 
   const handleSynthesizeWeek = async () => {
-    if (weekInsights.length === 0) return;
+    // We allow synthesis even if insights are empty, provided we have stats? 
+    // Usually insights are key. But user asked for stats to be included.
+    // Let's allow if either exist, but the prompt expects insights array.
+    if (weekInsights.length === 0 && weekStats.every(s => s.focusMinutes === 0 && s.wakeTime === 'N/A')) return;
+
     setLoadingSynthesis(true);
     try {
-      const result = await synthesizePeriodPerformance(weekInsights, 'Week');
+      const result = await synthesizePeriodPerformance(weekInsights, 'Week', weekStats);
       if (onWeeklySynthesis) {
         onWeeklySynthesis(currentWeekKey, result);
       }
@@ -122,7 +148,7 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({
           }} className="rounded-full w-10 h-10 p-0"><ChevronLeft size={18} /></Button>
           <Button variant="secondary" onClick={() => {
             const d = new Date(); const day = d.getDay(); const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-            const start = new Date(d.setDate(diff)); start.setHours(0,0,0,0); setCurrentWeekStart(start);
+            const start = new Date(d.setDate(diff)); start.setHours(0, 0, 0, 0); setCurrentWeekStart(start);
           }}>Today</Button>
           <Button variant="secondary" onClick={() => {
             const d = new Date(currentWeekStart); d.setDate(d.getDate() + 7); setCurrentWeekStart(d);
@@ -163,12 +189,12 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({
       {/* Daily Review Section */}
       <section className="mt-10 border-t border-white/10 pt-10">
         <div className="flex justify-between items-center mb-8">
-           <h3 className="text-xl font-bodoni font-bold text-white flex items-center gap-2">
-             <Brain size={20} className="text-white/60" /> Daily Intelligence Recap
-           </h3>
-           <Button onClick={handleSynthesizeWeek} variant="secondary" isLoading={loadingSynthesis} disabled={weekInsights.length === 0} className="rounded-full h-10 px-6">
-             <Sparkles size={14} className="mr-2" /> Summarize Week
-           </Button>
+          <h3 className="text-xl font-bodoni font-bold text-white flex items-center gap-2">
+            <Brain size={20} className="text-white/60" /> Daily Intelligence Recap
+          </h3>
+          <Button onClick={handleSynthesizeWeek} variant="secondary" isLoading={loadingSynthesis} disabled={weekInsights.length === 0} className="rounded-full h-10 px-6">
+            <Sparkles size={14} className="mr-2" /> Summarize Week
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
@@ -176,15 +202,15 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {weekInsights.length > 0 ? weekInsights.map((item, idx) => (
               <div key={idx} className="glass-card p-5 rounded-2xl border border-white/5 flex flex-col h-full animate-fade-in">
-                 <div className="flex justify-between items-center mb-3">
-                   <span className="text-[10px] font-mono text-white/40">{item.date}</span>
-                   <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">{item.insight.bookReference}</span>
-                 </div>
-                 <p className="text-[12px] italic text-white/80 flex-1 leading-relaxed">"{item.insight.insight}"</p>
-                 <div className="mt-4 pt-4 border-t border-white/5">
-                   <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mb-1">Concept</p>
-                   <p className="text-[11px] font-medium text-white/70">{item.insight.concept}</p>
-                 </div>
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-[10px] font-mono text-white/40">{item.date}</span>
+                  <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">{item.insight.bookReference}</span>
+                </div>
+                <p className="text-[12px] italic text-white/80 flex-1 leading-relaxed">"{item.insight.insight}"</p>
+                <div className="mt-4 pt-4 border-t border-white/5">
+                  <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mb-1">Concept</p>
+                  <p className="text-[11px] font-medium text-white/70">{item.insight.concept}</p>
+                </div>
               </div>
             )) : (
               <div className="col-span-full py-20 text-center border border-dashed border-white/5 rounded-2xl text-white/20 text-xs italic">No daily intelligence recorded for this week.</div>
@@ -204,33 +230,33 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({
                 </div>
 
                 <div className="bg-white/5 p-6 rounded-3xl border border-white/10">
-                   <p className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em] mb-3">Core Pivot</p>
-                   <div className="flex items-start gap-4">
-                      <div className="bg-white/10 p-2 rounded-xl"><ArrowIcon size={16} className="text-white" /></div>
-                      <p className="text-[15px] font-bodoni font-bold text-white leading-tight">{currentWeeklySummary.improvement}</p>
-                   </div>
+                  <p className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em] mb-3">Core Pivot</p>
+                  <div className="flex items-start gap-4">
+                    <div className="bg-white/10 p-2 rounded-xl"><ArrowIcon size={16} className="text-white" /></div>
+                    <p className="text-[15px] font-bodoni font-bold text-white leading-tight">{currentWeeklySummary.improvement}</p>
+                  </div>
                 </div>
 
                 <div className="flex-1 space-y-4">
-                   <p className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em]">Identified Patterns</p>
-                   <div className="flex flex-wrap gap-2">
-                      {currentWeeklySummary.patterns?.map((p: string, i: number) => (
-                        <span key={i} className="px-3 py-1.5 bg-white/10 rounded-xl text-[10px] text-white/70 border border-white/5 font-medium">{p}</span>
-                      ))}
-                   </div>
+                  <p className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em]">Identified Patterns</p>
+                  <div className="flex flex-wrap gap-2">
+                    {currentWeeklySummary.patterns?.map((p: string, i: number) => (
+                      <span key={i} className="px-3 py-1.5 bg-white/10 rounded-xl text-[10px] text-white/70 border border-white/5 font-medium">{p}</span>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="pt-6 border-t border-white/10">
-                   <p className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em] mb-2">Next Step</p>
-                   <p className="text-[13px] text-white/60 italic leading-relaxed">{currentWeeklySummary.suggestions}</p>
+                  <p className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em] mb-2">Next Step</p>
+                  <p className="text-[13px] text-white/60 italic leading-relaxed">{currentWeeklySummary.suggestions}</p>
                 </div>
               </div>
             ) : (
               <div className="h-[400px] flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-[40px] bg-white/5 text-white/10 px-10 text-center group">
-                 <Sparkles size={48} className="mb-6 opacity-5 group-hover:opacity-20 transition-opacity" />
-                 <p className="text-sm italic font-bodoni font-light max-w-xs leading-relaxed text-white/30">
-                   Generate a strategic summary for this week to see high-level intelligence here.
-                 </p>
+                <Sparkles size={48} className="mb-6 opacity-5 group-hover:opacity-20 transition-opacity" />
+                <p className="text-sm italic font-bodoni font-light max-w-xs leading-relaxed text-white/30">
+                  Generate a strategic summary for this week to see high-level intelligence here.
+                </p>
               </div>
             )}
           </div>
@@ -245,10 +271,10 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({
               <button onClick={() => setIsModalOpen(false)}><X size={18} className="text-white/40" /></button>
             </div>
             <div className="space-y-4">
-              <input autoFocus className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm font-bold text-white" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Title..." />
+              <input autoFocus className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm font-bold text-white" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="Title..." />
               <div className="grid grid-cols-2 gap-4">
-                <input type="time" className="bg-white/5 border border-white/10 rounded-lg p-2 text-xs text-white" value={formData.startTime} onChange={e => setFormData({...formData, startTime: e.target.value})} />
-                <input type="time" className="bg-white/5 border border-white/10 rounded-lg p-2 text-xs text-white" value={calculateEndTime(formData.startTime, formData.durationMinutes)} onChange={e => setFormData({...formData, durationMinutes: calculateDuration(formData.startTime, e.target.value)})} />
+                <input type="time" className="bg-white/5 border border-white/10 rounded-lg p-2 text-xs text-white" value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} />
+                <input type="time" className="bg-white/5 border border-white/10 rounded-lg p-2 text-xs text-white" value={calculateEndTime(formData.startTime, formData.durationMinutes)} onChange={e => setFormData({ ...formData, durationMinutes: calculateDuration(formData.startTime, e.target.value) })} />
               </div>
               <Button onClick={handleSave} className="w-full">Save to Plan</Button>
             </div>

@@ -3,7 +3,17 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { ZENITH_SYSTEM_INSTRUCTION } from "../constants";
 import { Task, Transaction, KnowledgeItem } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize lazily to prevent crash if key is missing on load
+let ai: GoogleGenAI | null = null;
+const getAI = () => {
+  if (!ai) {
+    // Fallback to empty string but warn
+    const apiKey = process.env.API_KEY || "";
+    // Using gemini-2.0-flash-exp as it is explicitly enabled in user's console
+    ai = new GoogleGenAI({ apiKey });
+  }
+  return ai;
+};
 
 const planResponseSchema = {
   type: Type.OBJECT,
@@ -72,8 +82,8 @@ export const generateMorningPlan = async (currentTasks: Task[], knowledgeBase: K
     4. Mark only 1-2 essential items.
   `;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+  const response = await getAI().models.generateContent({
+    model: 'gemini-2.0-flash-exp',
     contents: prompt,
     config: {
       systemInstruction: ZENITH_SYSTEM_INSTRUCTION,
@@ -89,16 +99,16 @@ export const analyzeDailyReflection = async (tasks: Task[], knowledgeBase: Knowl
   const prompt = `
     Analyze Jack's day:
     ${JSON.stringify(tasks.map(t => ({
-      title: t.title,
-      planned: t.durationMinutes,
-      actual: t.actualDurationMinutes || 0,
-      reflection: t.reflection || ""
-    })))}
+    title: t.title,
+    planned: t.durationMinutes,
+    actual: t.actualDurationMinutes || 0,
+    reflection: t.reflection || ""
+  })))}
     Quote specific principles from books where relevant.
   `;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+  const response = await getAI().models.generateContent({
+    model: 'gemini-2.0-flash-exp',
     contents: prompt,
     config: {
       systemInstruction: ZENITH_SYSTEM_INSTRUCTION,
@@ -110,35 +120,46 @@ export const analyzeDailyReflection = async (tasks: Task[], knowledgeBase: Knowl
   return JSON.parse(response.text || "{}");
 };
 
-export const synthesizePeriodPerformance = async (insights: any[], period: 'Week' | 'Month') => {
+export interface DailyStats {
+  date: string;
+  completionRate: number; // 0-100
+  focusMinutes: number;
+  wakeTime: string;
+}
+
+export const synthesizePeriodPerformance = async (insights: any[], period: 'Week' | 'Month', stats?: DailyStats[]) => {
   const prompt = `
-    Analyze Jack's ${period}ly performance based on these daily insights:
-    ${JSON.stringify(insights)}
-    Summarize trends, identify focus-leaks using "Deep Work", and suggest strategic shifts for the next ${period}.
+    Analyze Jack's ${period}ly performance based on:
+    1. Daily Qualitative Insights: ${JSON.stringify(insights)}
+    2. Daily Quantitative Stats (Completion Rate, Focus Minutes, Wake Up Time): ${JSON.stringify(stats || [])}
+
+    Summarize trends in both discipline (wake up times, completion rates) and depth (focus minutes).
+    Identify focus-leaks using "Deep Work", and suggest strategic shifts for the next ${period}.
   `;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+  const response = await getAI().models.generateContent({
+    model: 'gemini-2.0-flash-exp',
     contents: prompt,
     config: {
       systemInstruction: ZENITH_SYSTEM_INSTRUCTION,
       responseMimeType: "application/json",
       responseSchema: periodSynthesisSchema
-    }
+    } // ... rest of config
   });
 
   return JSON.parse(response.text || "{}");
 };
 
 export const analyzeFinancialPeriod = async (transactions: Transaction[], periodLabel: string) => {
+  // ... (use getAI().models.generateContent with gemini-2.0-flash-exp)
   const prompt = `
     Analyze Jack's financial status for ${periodLabel}:
     ${JSON.stringify(transactions)}
     Focus on pattern recognition and the "Vital Few" vs "Trivial Many".
   `;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+  const response = await getAI().models.generateContent({
+    model: 'gemini-2.0-flash-exp',
     contents: prompt,
     config: {
       systemInstruction: ZENITH_SYSTEM_INSTRUCTION,
@@ -148,17 +169,18 @@ export const analyzeFinancialPeriod = async (transactions: Transaction[], period
   });
 
   return JSON.parse(response.text || "{}");
-};
+}
 
 export const analyzeTotalFinancialStatus = async (transactions: Transaction[]) => {
+  // ... (use getAI().models.generateContent with gemini-2.0-flash-exp)
   const prompt = `
     Please analyze Jack's financial records across multiple weeks/months:
     ${JSON.stringify(transactions)}
     Provide a unified status and a specific actionable step.
   `;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+  const response = await getAI().models.generateContent({
+    model: 'gemini-2.0-flash-exp',
     contents: prompt,
     config: {
       systemInstruction: ZENITH_SYSTEM_INSTRUCTION,
@@ -168,4 +190,4 @@ export const analyzeTotalFinancialStatus = async (transactions: Transaction[]) =
   });
 
   return JSON.parse(response.text || "{}");
-};
+}

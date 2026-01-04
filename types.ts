@@ -55,7 +55,7 @@ export interface Transaction {
 export interface KnowledgeItem {
   id: string;
   bookTitle: string;
-  content: string; 
+  content: string;
   category: 'Habits' | 'Deep Work' | 'Mindset' | 'Finance' | 'Other';
 }
 
@@ -81,4 +81,11 @@ export interface AiInsight {
   message: string;
   sourceBook?: string;
   actionableStep?: string;
+}
+
+export interface DailyStats {
+  date: string;
+  completionRate: number; // 0-100
+  focusMinutes: number;
+  wakeTime: string;
 }
