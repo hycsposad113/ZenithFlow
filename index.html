@@ -64,14 +64,12 @@
 
       /* Form Input styling for contrast */
       input, select, textarea {
-        background: rgba(0, 0, 0, 0.3) !important;
+        background: rgba(0, 0, 0, 0.2) !important;
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        color: #ffffff !important;
-        -webkit-text-fill-color: #ffffff !important;
+        color: white !important;
       }
-      input::placeholder, textarea::placeholder {
+      input::placeholder {
         color: rgba(255, 255, 255, 0.4) !important;
-        -webkit-text-fill-color: rgba(255, 255, 255, 0.4) !important;
       }
       
       /* Reset auto-fill styles which often cause white backgrounds */
@@ -84,8 +82,8 @@
       select:-webkit-autofill,
       select:-webkit-autofill:hover,
       select:-webkit-autofill:focus {
-        -webkit-text-fill-color: #ffffff !important;
-        -webkit-box-shadow: 0 0 0px 1000px #2a0b0d inset !important;
+        -webkit-text-fill-color: white !important;
+        -webkit-box-shadow: 0 0 0px 1000px #1a1a1a inset !important;
         transition: background-color 5000s ease-in-out 0s;
       }
     </style>
