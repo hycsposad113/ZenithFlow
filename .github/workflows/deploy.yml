@@ -34,6 +34,8 @@ jobs:
         run: npm run build
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          APP_USER: ${{ secrets.APP_USER }}
+          APP_PASS: ${{ secrets.APP_PASS }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
