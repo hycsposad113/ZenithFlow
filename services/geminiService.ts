@@ -3,7 +3,19 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { ZENITH_SYSTEM_INSTRUCTION } from "../constants";
 import { Task, Transaction, KnowledgeItem } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize lazily to prevent crash if key is missing on load
+let ai: GoogleGenAI | null = null;
+const getAI = () => {
+  if (!ai) {
+    // Fallback to empty string to prevent constructor error, but warn
+    const apiKey = process.env.API_KEY || "";
+    if (!apiKey) {
+      console.warn("⚠️ ZenithFlow: No Gemini API Key found. AI features will not work.");
+    }
+    ai = new GoogleGenAI({ apiKey });
+  }
+  return ai;
+};
 
 const planResponseSchema = {
   type: Type.OBJECT,
@@ -72,7 +84,7 @@ export const generateMorningPlan = async (currentTasks: Task[], knowledgeBase: K
     4. Mark only 1-2 essential items.
   `;
 
-  const response = await ai.models.generateContent({
+  const response = await getAI().models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: prompt,
     config: {
@@ -89,15 +101,15 @@ export const analyzeDailyReflection = async (tasks: Task[], knowledgeBase: Knowl
   const prompt = `
     Analyze Jack's day:
     ${JSON.stringify(tasks.map(t => ({
-      title: t.title,
-      planned: t.durationMinutes,
-      actual: t.actualDurationMinutes || 0,
-      reflection: t.reflection || ""
-    })))}
+    title: t.title,
+    planned: t.durationMinutes,
+    actual: t.actualDurationMinutes || 0,
+    reflection: t.reflection || ""
+  })))}
     Quote specific principles from books where relevant.
   `;
 
-  const response = await ai.models.generateContent({
+  const response = await getAI().models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: prompt,
     config: {
@@ -117,7 +129,7 @@ export const synthesizePeriodPerformance = async (insights: any[], period: 'Week
     Summarize trends, identify focus-leaks using "Deep Work", and suggest strategic shifts for the next ${period}.
   `;
 
-  const response = await ai.models.generateContent({
+  const response = await getAI().models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: prompt,
     config: {
@@ -137,7 +149,7 @@ export const analyzeFinancialPeriod = async (transactions: Transaction[], period
     Focus on pattern recognition and the "Vital Few" vs "Trivial Many".
   `;
 
-  const response = await ai.models.generateContent({
+  const response = await getAI().models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: prompt,
     config: {
@@ -157,7 +169,7 @@ export const analyzeTotalFinancialStatus = async (transactions: Transaction[]) =
     Provide a unified status and a specific actionable step.
   `;
 
-  const response = await ai.models.generateContent({
+  const response = await getAI().models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: prompt,
     config: {
