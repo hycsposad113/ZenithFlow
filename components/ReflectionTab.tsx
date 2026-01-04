@@ -74,7 +74,7 @@ export const ReflectionTab: React.FC<ReflectionTabProps> = ({ tasks, setTasks, a
       </div>
 
       <div className="flex justify-end mb-10">
-        <Button onClick={runAnalysis} isLoading={loading} disabled={tasks.length === 0} className="px-10 py-4 rounded-full bg-white text-[#c0373f] font-bold uppercase tracking-widest text-[11px] hover:scale-105 active:scale-95 shadow-2xl">
+        <Button onClick={runAnalysis} variant="primary" isLoading={loading} disabled={tasks.length === 0} className="px-10">
           Deep Analyze
         </Button>
       </div>

@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Task, TaskType, TaskStatus, CalendarEvent, EventType } from '../types';
+import { Button } from './Button';
 import { Trash2, X } from 'lucide-react';
 
 interface CalendarRailProps {
@@ -147,7 +148,7 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
         const top = ((start - START_HOUR * 60) / TOTAL_MINUTES) * 100;
         const height = (item.duration / TOTAL_MINUTES) * 100;
         
-        // Use ~85% width as requested
+        // Use ~85% width as requested in feedback
         const width = 85 / columns.length;
         const left = item._colIndex * width;
 
@@ -175,8 +176,8 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
 
       const deltaY = e.clientY - state.startY;
 
-      // Higher threshold (10px) to distinguish click from intentional drag
-      if (Math.abs(deltaY) > 10) {
+      // Threshold to distinguish click from intentional drag
+      if (Math.abs(deltaY) > 5) {
         state.hasMoved = true;
         if (state.mode !== 'create') {
            setActiveDrag(prev => prev ? { ...prev, hasMoved: true } : null);
@@ -249,7 +250,7 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
         }
       } else if (state.id) {
          if (!state.hasMoved) {
-            // Reliable Click Detection
+            // Force setting editing state on reliable click
             setEditingId({ id: state.id, isEvent: state.isEvent });
          }
          setActiveDrag(null);
@@ -429,6 +430,7 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
                   }}
                   onMouseDown={(e) => handleItemMouseDown(e, item.id, !item.isTask, top, height, 'move')}
                   onDoubleClick={(e) => { e.stopPropagation(); setEditingId({ id: item.id, isEvent: !item.isTask }); }}
+                  onClick={(e) => { e.stopPropagation(); if (!dragRef.current.hasMoved) setEditingId({ id: item.id, isEvent: !item.isTask }); }}
                 >
                   <div className="flex justify-between items-start mb-0.5">
                     <p className="font-bodoni font-bold leading-tight truncate w-full uppercase tracking-tight pr-4">{item.title || '(Untitled)'}</p>
@@ -511,7 +513,7 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
 
             <div className="pt-4 flex gap-3">
                 <button onClick={(e) => deleteItem(editingData.id, !editingData.isTask, e)} className="p-3 text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-xl transition-all border border-red-500/20"><Trash2 size={16} /></button>
-                <button onClick={() => setEditingId(null)} className="flex-1 bg-white text-[#bf363e] text-[10px] font-bold py-3.5 rounded-xl shadow-2xl transition-all uppercase tracking-widest">Save</button>
+                <Button onClick={() => setEditingId(null)} variant="primary" className="flex-1">Save</Button>
             </div>
           </div>
         </div>

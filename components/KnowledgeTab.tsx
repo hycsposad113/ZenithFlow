@@ -87,7 +87,7 @@ export const KnowledgeTab: React.FC<KnowledgeTabProps> = ({ knowledge, setKnowle
                 />
               </div>
 
-              <Button onClick={addKnowledge} className="w-full py-4 rounded-2xl bg-white text-[#c0373f] font-bold tracking-widest uppercase text-[10px] shadow-2xl hover:scale-105 active:scale-95">
+              <Button onClick={addKnowledge} variant="primary" className="w-full">
                 Feed to Agent
               </Button>
             </div>

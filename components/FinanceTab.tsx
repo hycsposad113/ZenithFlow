@@ -122,7 +122,7 @@ export const FinanceTab: React.FC<FinanceTabProps> = ({ transactions, setTransac
                 <textarea value={notes} onChange={e => setNotes(e.target.value)} className="w-full text-sm font-medium p-3.5 bg-white/5 border border-white/10 rounded-2xl outline-none h-24 resize-none" placeholder="Capture your mindset at entry/exit..." />
               </div>
 
-              <Button onClick={handleAddTransaction} className="w-full py-4 rounded-2xl bg-white text-[#c0373f] font-bold tracking-widest uppercase text-[10px] shadow-2xl" isLoading={analyzing}>Log Transaction</Button>
+              <Button onClick={handleAddTransaction} variant="primary" className="w-full" isLoading={analyzing}>Log Transaction</Button>
             </div>
           </div>
 
