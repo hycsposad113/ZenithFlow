@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Task, TaskType, TaskStatus, KnowledgeItem, CalendarEvent, EventType } from '../types';
 import { Button } from './Button';
 import { generateMorningPlan } from '../services/geminiService';
-import { 
+import {
   Zap, Trash2, CheckCircle2, Circle, X, Clock, Sunrise, Brain, Dumbbell
 } from 'lucide-react';
 
@@ -19,7 +19,7 @@ interface PlanningTabProps {
   totalFocusMinutes?: number;
 }
 
-export const PlanningTab: React.FC<PlanningTabProps> = ({ 
+export const PlanningTab: React.FC<PlanningTabProps> = ({
   tasks, setTasks, events, setEvents, routine, setRoutine, analysis, knowledge, totalFocusMinutes = 0
 }) => {
   const [loading, setLoading] = useState(false);
@@ -55,14 +55,14 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
     const todayEvents = events.filter(e => e.date === todayStr);
 
     const mappedTasks = todayTasks.map(t => ({ ...t, isEvent: false }));
-    const mappedEvents = todayEvents.map(e => ({ 
-      ...e, 
-      isEvent: true, 
+    const mappedEvents = todayEvents.map(e => ({
+      ...e,
+      isEvent: true,
       scheduledTime: e.startTime,
-      status: TaskStatus.PLANNED 
+      status: TaskStatus.PLANNED
     }));
 
-    return [...mappedTasks, ...mappedEvents].sort((a, b) => 
+    return [...mappedTasks, ...mappedEvents].sort((a, b) =>
       (a.scheduledTime || '').localeCompare(b.scheduledTime || '')
     );
   }, [tasks, events, todayStr]);
@@ -86,9 +86,9 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
           id: `gen-${Date.now()}-${idx}`,
           title,
           date: todayStr,
-          type: titleLower.includes('english') ? TaskType.ENGLISH_SPEAKING : 
-                titleLower.includes('ai') ? TaskType.AI_PRACTICE : 
-                titleLower.includes('urbanism') ? TaskType.LECTURE : TaskType.OTHER,
+          type: titleLower.includes('english') ? TaskType.ENGLISH_SPEAKING :
+            titleLower.includes('ai') ? TaskType.AI_PRACTICE :
+              titleLower.includes('urbanism') ? TaskType.LECTURE : TaskType.OTHER,
           durationMinutes: t.durationMinutes || 60,
           scheduledTime: t.startTime || "09:00",
           status: TaskStatus.PLANNED,
@@ -107,9 +107,9 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
 
   const toggleTaskStatus = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setTasks(prev => prev.map(t => t.id === id ? { 
-      ...t, 
-      status: t.status === TaskStatus.COMPLETED ? TaskStatus.PLANNED : TaskStatus.COMPLETED 
+    setTasks(prev => prev.map(t => t.id === id ? {
+      ...t,
+      status: t.status === TaskStatus.COMPLETED ? TaskStatus.PLANNED : TaskStatus.COMPLETED
     } : t));
   };
 
@@ -142,7 +142,7 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [editingId, setEvents, setTasks]);
 
-  const editingItem = editingId 
+  const editingItem = editingId
     ? (editingId.isEvent ? events.find(e => e.id === editingId.id) : tasks.find(t => t.id === editingId.id))
     : null;
 
@@ -154,8 +154,8 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
           <span className="text-[10px] font-bold text-white/50 tracking-widest">{dateString}</span>
           <h2 className="text-3xl font-bodoni font-bold text-white leading-none floating-title">{weekday}</h2>
         </div>
-        <button 
-          onClick={handleMorningRitual} 
+        <button
+          onClick={handleMorningRitual}
           disabled={loading}
           className="w-full md:w-auto rounded-full px-8 text-[12px] h-12 md:h-10 bg-white text-[#bf363f] font-bold hover:bg-white/90 flex items-center justify-center gap-2 shadow-xl transition-all disabled:opacity-50"
         >
@@ -178,11 +178,10 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
             const endTime = calculateEndTime(item.scheduledTime || '00:00', item.durationMinutes);
 
             return (
-              <div 
-                key={item.id} 
-                className={`relative p-5 md:p-6 rounded-3xl border cursor-pointer hover:translate-y-[-4px] transition-all group flex flex-col min-h-[160px] ${
-                  isCompleted ? 'bg-black/10 border-white/5 opacity-50' : 'bg-white/10 border-white/10 hover:bg-white/15'
-                }`} 
+              <div
+                key={item.id}
+                className={`relative p-5 md:p-6 rounded-3xl border cursor-pointer hover:translate-y-[-4px] transition-all group flex flex-col min-h-[160px] ${isCompleted ? 'bg-black/10 border-white/5 opacity-50' : 'bg-white/10 border-white/10 hover:bg-white/15'
+                  }`}
                 onClick={() => setEditingId({ id: item.id, isEvent })}
               >
                 <div className="flex justify-between items-start mb-4">
@@ -215,46 +214,46 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
 
       {/* Stats and Insight Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          <div className="glass-card p-6 rounded-3xl border border-white/20 flex flex-col min-h-[160px]">
-            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">Daily Insight</p>
-            <div className="flex-1 flex flex-col justify-center">
-              {analysis ? (
-                <div className="space-y-4">
-                  <p className="text-[14px] font-medium text-white/90 leading-relaxed italic border-l-2 border-white/30 pl-3">"{analysis.insight}"</p>
-                </div>
-              ) : (
-                <p className="text-[12px] text-white/50 italic font-light">Insights will appear after review.</p>
-              )}
+        <div className="glass-card p-6 rounded-3xl border border-white/20 flex flex-col min-h-[160px]">
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">Daily Insight</p>
+          <div className="flex-1 flex flex-col justify-center">
+            {analysis ? (
+              <div className="space-y-4">
+                <p className="text-[14px] font-medium text-white/90 leading-relaxed italic border-l-2 border-white/30 pl-3">"{analysis.insight}"</p>
+              </div>
+            ) : (
+              <p className="text-[12px] text-white/50 italic font-light">Insights will appear after review.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="glass-card p-6 rounded-3xl border border-white/20 flex flex-col items-center justify-center min-h-[160px]">
+          <h4 className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-6 w-full text-left">Today's Progress</h4>
+          <div className="flex items-center gap-6 w-full">
+            <div className="relative">
+              <svg className="w-16 h-16 transform -rotate-90 overflow-visible">
+                <circle cx="32" cy="32" r="28" stroke="rgba(255,255,255,0.05)" strokeWidth="6" fill="transparent" />
+                <circle cx="32" cy="32" r="28" stroke="white" strokeWidth="6" fill="transparent" strokeDasharray={175.93} strokeDashoffset={175.93 - (175.93 * stats.percentage) / 100} strokeLinecap="round" className="transition-all duration-700 ease-out" />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center"><span className="text-[12px] font-bold text-white">{stats.percentage}%</span></div>
+            </div>
+            <div className="grid grid-cols-2 flex-1 gap-2">
+              <div className="text-center"><p className="text-xl font-bodoni font-bold text-white">{stats.inProgress}</p><p className="text-[8px] text-white/40 uppercase font-bold">Left</p></div>
+              <div className="text-center border-l border-white/10"><p className="text-xl font-bodoni font-bold text-white">{stats.completed}</p><p className="text-[8px] text-white/40 uppercase font-bold">Done</p></div>
             </div>
           </div>
+        </div>
 
-          <div className="glass-card p-6 rounded-3xl border border-white/20 flex flex-col items-center justify-center min-h-[160px]">
-            <h4 className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-6 w-full text-left">Today's Progress</h4>
-            <div className="flex items-center gap-6 w-full">
-               <div className="relative">
-                 <svg className="w-16 h-16 transform -rotate-90 overflow-visible">
-                   <circle cx="32" cy="32" r="28" stroke="rgba(255,255,255,0.05)" strokeWidth="6" fill="transparent" />
-                   <circle cx="32" cy="32" r="28" stroke="white" strokeWidth="6" fill="transparent" strokeDasharray={175.93} strokeDashoffset={175.93 - (175.93 * stats.percentage) / 100} strokeLinecap="round" className="transition-all duration-700 ease-out" />
-                 </svg>
-                 <div className="absolute inset-0 flex items-center justify-center"><span className="text-[12px] font-bold text-white">{stats.percentage}%</span></div>
-               </div>
-               <div className="grid grid-cols-2 flex-1 gap-2">
-                 <div className="text-center"><p className="text-xl font-bodoni font-bold text-white">{stats.inProgress}</p><p className="text-[8px] text-white/40 uppercase font-bold">Left</p></div>
-                 <div className="text-center border-l border-white/10"><p className="text-xl font-bodoni font-bold text-white">{stats.completed}</p><p className="text-[8px] text-white/40 uppercase font-bold">Done</p></div>
-               </div>
-            </div>
-          </div>
+        <div className="glass-card p-6 rounded-3xl border border-white/20 flex flex-col items-center justify-center min-h-[160px]">
+          <h4 className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-2 w-full text-left">Deep Focus</h4>
+          <span className="text-4xl font-bodoni font-bold text-white">{totalFocusMinutes}</span>
+          <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest mt-1">Minutes Today</span>
+        </div>
 
-          <div className="glass-card p-6 rounded-3xl border border-white/20 flex flex-col items-center justify-center min-h-[160px]">
-            <h4 className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-2 w-full text-left">Deep Focus</h4>
-            <span className="text-4xl font-bodoni font-bold text-white">{totalFocusMinutes}</span>
-            <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest mt-1">Minutes Today</span>
-          </div>
-
-          <div className="glass-card p-6 rounded-3xl border border-white/20 flex flex-col min-h-[160px]">
-            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">Daily Mantra</p>
-            <div className="flex-1 flex flex-col justify-center"><p className="text-[14px] font-bodoni font-medium text-white/90 leading-snug italic">"{mantra}"</p></div>
-          </div>
+        <div className="glass-card p-6 rounded-3xl border border-white/20 flex flex-col min-h-[160px]">
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">Daily Mantra</p>
+          <div className="flex-1 flex flex-col justify-center"><p className="text-[14px] font-bodoni font-medium text-white/90 leading-snug italic">"{mantra}"</p></div>
+        </div>
       </div>
 
       {/* Routine Section */}
@@ -262,41 +261,43 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
         <h4 className="text-[12px] font-bold text-white/40 uppercase tracking-widest mb-8 flex items-center gap-2">Routine Checklist</h4>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
           <div className="bg-white/5 p-5 rounded-2xl border border-white/10 flex items-center gap-5 transition-all hover:bg-white/10">
-             <div className="bg-white/10 p-3 rounded-xl text-white"><Sunrise size={20} /></div>
-             <div className="flex-1">
-                <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Wake Up</p>
-                <input 
-                  type="time" 
-                  className="bg-transparent border-none p-0 text-lg font-bodoni font-bold text-white outline-none focus:ring-0 w-full cursor-pointer appearance-none"
+            <div className="bg-white/10 p-3 rounded-xl text-white"><Sunrise size={20} /></div>
+            <div className="flex-1">
+              <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Wake Up</p>
+              <div className="relative">
+                <input
+                  type="time"
+                  className="bg-transparent border-none p-0 text-lg font-bodoni font-bold text-white outline-none focus:ring-0 w-full cursor-pointer appearance-none [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                   style={{ background: 'transparent' }}
                   value={routine.wake}
                   onChange={(e) => setRoutine(prev => ({ ...prev, wake: e.target.value }))}
                 />
-             </div>
+              </div>
+            </div>
           </div>
-          
-          <button 
+
+          <button
             onClick={() => setRoutine(prev => ({ ...prev, meditation: !prev.meditation }))}
             className={`p-5 rounded-2xl flex items-center gap-5 transition-all border ${routine.meditation ? 'bg-white/20 border-white/40 shadow-inner' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
           >
-             <div className={`p-3 rounded-xl ${routine.meditation ? 'bg-white text-[#bf363e]' : 'bg-white/10 text-white/40'}`}><Brain size={20} /></div>
-             <div className="text-left flex-1">
-                <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Meditation</p>
-                <p className={`text-lg font-bodoni font-bold ${routine.meditation ? 'text-white' : 'text-white/40'}`}>{routine.meditation ? 'Done' : 'Open'}</p>
-             </div>
-             {routine.meditation && <CheckCircle2 size={20} className="text-white" />}
+            <div className={`p-3 rounded-xl ${routine.meditation ? 'bg-white text-[#bf363e]' : 'bg-white/10 text-white/40'}`}><Brain size={20} /></div>
+            <div className="text-left flex-1">
+              <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Meditation</p>
+              <p className={`text-lg font-bodoni font-bold ${routine.meditation ? 'text-white' : 'text-white/40'}`}>{routine.meditation ? 'Done' : 'Open'}</p>
+            </div>
+            {routine.meditation && <CheckCircle2 size={20} className="text-white" />}
           </button>
 
-          <button 
+          <button
             onClick={() => setRoutine(prev => ({ ...prev, exercise: !prev.exercise }))}
             className={`p-5 rounded-2xl flex items-center gap-5 transition-all border ${routine.exercise ? 'bg-white/20 border-white/40 shadow-inner' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
           >
-             <div className={`p-3 rounded-xl ${routine.exercise ? 'bg-white text-[#bf363e]' : 'bg-white/10 text-white/40'}`}><Dumbbell size={20} /></div>
-             <div className="text-left flex-1">
-                <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Exercise</p>
-                <p className={`text-lg font-bodoni font-bold ${routine.exercise ? 'text-white' : 'text-white/40'}`}>{routine.exercise ? 'Done' : 'Open'}</p>
-             </div>
-             {routine.exercise && <CheckCircle2 size={20} className="text-white" />}
+            <div className={`p-3 rounded-xl ${routine.exercise ? 'bg-white text-[#bf363e]' : 'bg-white/10 text-white/40'}`}><Dumbbell size={20} /></div>
+            <div className="text-left flex-1">
+              <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Exercise</p>
+              <p className={`text-lg font-bodoni font-bold ${routine.exercise ? 'text-white' : 'text-white/40'}`}>{routine.exercise ? 'Done' : 'Open'}</p>
+            </div>
+            {routine.exercise && <CheckCircle2 size={20} className="text-white" />}
           </button>
         </div>
       </div>
@@ -305,56 +306,56 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
       {editingItem && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[1000] flex items-center justify-center p-4" onClick={() => setEditingId(null)}>
           <div className="glass-card-dark w-full max-w-md rounded-[40px] shadow-[0_32px_80px_rgba(0,0,0,0.5)] p-8 border border-white/10" onClick={(e) => e.stopPropagation()}>
-             <div className="flex justify-between items-center mb-8">
-                <h3 className="text-xl font-bodoni font-bold text-white tracking-wide">Edit Item</h3>
-                <button onClick={() => setEditingId(null)} className="p-2 hover:bg-white/10 rounded-full text-white/40 transition-colors"><X size={20} /></button>
-             </div>
-             <div className="space-y-6">
+            <div className="flex justify-between items-center mb-8">
+              <h3 className="text-xl font-bodoni font-bold text-white tracking-wide">Edit Item</h3>
+              <button onClick={() => setEditingId(null)} className="p-2 hover:bg-white/10 rounded-full text-white/40 transition-colors"><X size={20} /></button>
+            </div>
+            <div className="space-y-6">
+              <div>
+                <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2 block">Title</label>
+                <input
+                  className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm font-semibold text-white focus:ring-2 focus:ring-white/20 outline-none transition-all"
+                  value={editingItem.title}
+                  onChange={(e) => {
+                    if (editingId?.isEvent) {
+                      setEvents(prev => prev.map(ev => ev.id === editingId.id ? { ...ev, title: e.target.value } : ev));
+                    } else {
+                      setTasks(prev => prev.map(t => t.id === editingId?.id ? { ...t, title: e.target.value } : t));
+                    }
+                  }}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2 block">Title</label>
-                  <input 
-                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm font-semibold text-white focus:ring-2 focus:ring-white/20 outline-none transition-all" 
-                    value={editingItem.title} 
-                    onChange={(e) => {
-                      if (editingId?.isEvent) {
-                        setEvents(prev => prev.map(ev => ev.id === editingId.id ? { ...ev, title: e.target.value } : ev));
-                      } else {
-                        setTasks(prev => prev.map(t => t.id === editingId?.id ? { ...t, title: e.target.value } : t));
-                      }
-                    }} 
+                  <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2 block">Start</label>
+                  <input type="time" className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm font-semibold text-white outline-none" value={editingId?.isEvent ? (editingItem as CalendarEvent).startTime : (editingItem as Task).scheduledTime} onChange={(e) => {
+                    if (editingId?.isEvent) {
+                      setEvents(prev => prev.map(ev => ev.id === editingId.id ? { ...ev, startTime: e.target.value } : ev));
+                    } else {
+                      setTasks(prev => prev.map(t => t.id === editingId?.id ? { ...t, scheduledTime: e.target.value } : t));
+                    }
+                  }}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2 block">Start</label>
-                    <input type="time" className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm font-semibold text-white outline-none" value={editingId?.isEvent ? (editingItem as CalendarEvent).startTime : (editingItem as Task).scheduledTime} onChange={(e) => {
-                        if (editingId?.isEvent) {
-                          setEvents(prev => prev.map(ev => ev.id === editingId.id ? { ...ev, startTime: e.target.value } : ev));
-                        } else {
-                          setTasks(prev => prev.map(t => t.id === editingId?.id ? { ...t, scheduledTime: e.target.value } : t));
-                        }
-                      }} 
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2 block">End</label>
-                    <input type="time" className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm font-semibold text-white outline-none" value={calculateEndTime(editingId?.isEvent ? (editingItem as CalendarEvent).startTime : (editingItem as Task).scheduledTime || '00:00', editingItem.durationMinutes)} onChange={(e) => {
-                        const start = editingId?.isEvent ? (editingItem as CalendarEvent).startTime : (editingItem as Task).scheduledTime || '00:00';
-                        const newDuration = calculateDuration(start, e.target.value);
-                        if (editingId?.isEvent) {
-                          setEvents(prev => prev.map(ev => ev.id === editingId.id ? { ...ev, durationMinutes: newDuration } : ev));
-                        } else {
-                          setTasks(prev => prev.map(t => t.id === editingId?.id ? { ...t, durationMinutes: newDuration } : t));
-                        }
-                      }} 
-                    />
-                  </div>
+                <div>
+                  <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2 block">End</label>
+                  <input type="time" className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm font-semibold text-white outline-none" value={calculateEndTime(editingId?.isEvent ? (editingItem as CalendarEvent).startTime : (editingItem as Task).scheduledTime || '00:00', editingItem.durationMinutes)} onChange={(e) => {
+                    const start = editingId?.isEvent ? (editingItem as CalendarEvent).startTime : (editingItem as Task).scheduledTime || '00:00';
+                    const newDuration = calculateDuration(start, e.target.value);
+                    if (editingId?.isEvent) {
+                      setEvents(prev => prev.map(ev => ev.id === editingId.id ? { ...ev, durationMinutes: newDuration } : ev));
+                    } else {
+                      setTasks(prev => prev.map(t => t.id === editingId?.id ? { ...t, durationMinutes: newDuration } : t));
+                    }
+                  }}
+                  />
                 </div>
-                <div className="pt-4 flex gap-4">
-                  <button className="rounded-2xl flex-1 bg-red-500/20 text-red-100 border border-red-500/30 font-bold tracking-widest text-[10px] uppercase py-4" onClick={(e) => deleteItem(editingId!.id, editingId!.isEvent, e)}>Delete</button>
-                  <button className="flex-1 rounded-2xl bg-white text-[#bf363e] font-bold tracking-widest text-[10px] uppercase py-4 shadow-xl hover:bg-white/90" onClick={() => setEditingId(null)}>Save</button>
-                </div>
-             </div>
+              </div>
+              <div className="pt-4 flex gap-4">
+                <button className="rounded-2xl flex-1 bg-red-500/20 text-red-100 border border-red-500/30 font-bold tracking-widest text-[10px] uppercase py-4" onClick={(e) => deleteItem(editingId!.id, editingId!.isEvent, e)}>Delete</button>
+                <button className="flex-1 rounded-2xl bg-white text-[#bf363e] font-bold tracking-widest text-[10px] uppercase py-4 shadow-xl hover:bg-white/90" onClick={() => setEditingId(null)}>Save</button>
+              </div>
+            </div>
           </div>
         </div>
       )}

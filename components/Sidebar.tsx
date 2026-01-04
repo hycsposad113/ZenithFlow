@@ -34,11 +34,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onG
           <button
             key={item.id}
             onClick={() => setCurrentTab(item.id)}
-            className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[13px] transition-all duration-300 ${
-              currentTab === item.id 
-                ? 'bg-white/20 text-white font-semibold border border-white/20 shadow-xl' 
+            className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[13px] transition-all duration-300 ${currentTab === item.id
+                ? 'bg-white/20 text-white font-semibold border border-white/20 shadow-xl'
                 : 'text-white/60 hover:bg-white/10 hover:text-white'
-            }`}
+              }`}
           >
             <item.icon size={18} />
             <span className="tracking-wide">{item.label}</span>
@@ -53,11 +52,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onG
             <button
               key={idx}
               onClick={() => item.id && setCurrentTab(item.id)}
-              className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[13px] transition-all duration-300 ${
-                currentTab === item.id 
-                  ? 'bg-white/20 text-white font-semibold border border-white/20 shadow-xl' 
+              className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[13px] transition-all duration-300 ${currentTab === item.id
+                  ? 'bg-white/20 text-white font-semibold border border-white/20 shadow-xl'
                   : 'text-white/60 hover:bg-white/10 hover:text-white'
-              }`}
+                }`}
             >
               <item.icon size={18} className={item.id === 'focus' && currentTab === 'focus' ? 'text-white' : ''} />
               <span className="tracking-wide">{item.label}</span>
@@ -67,12 +65,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onG
       </div>
 
       <div className="mt-8 px-2 space-y-3">
-        <button 
+        <button
           onClick={onGoogleSync}
           className={`w-full flex items-center justify-center gap-3 py-3 rounded-2xl border transition-all ${isSynced ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-white/5 border-white/10 text-white/40 hover:bg-white/10 hover:text-white'}`}
         >
           <RefreshCw size={14} className={isSynced ? '' : 'animate-spin-slow'} />
           <span className="text-[10px] font-bold uppercase tracking-widest">{isSynced ? 'Synced with G' : 'Sync Google'}</span>
+        </button>
+
+        <button
+          onClick={() => {
+            localStorage.removeItem('zenithflow_auth');
+            window.location.reload();
+          }}
+          className="w-full flex items-center justify-center gap-2 py-3 mt-4 text-[10px] font-bold text-white/20 uppercase tracking-widest hover:text-white/60 transition-colors"
+        >
+          Log Out
         </button>
       </div>
     </div>
