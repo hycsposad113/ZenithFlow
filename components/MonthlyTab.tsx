@@ -1,291 +1,237 @@
 
-import React, { useState, useEffect } from 'react';
-import { CalendarEvent, EventType, Task, TaskType, TaskStatus } from '../types';
-import { ChevronLeft, ChevronRight, Plus, X, Clock, ClipboardList, Trash2 } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { CalendarEvent, Task, TaskType, TaskStatus } from '../types';
 import { Button } from './Button';
+import { synthesizePeriodPerformance } from '../services/geminiService';
+import { ChevronLeft, ChevronRight, Brain, Sparkles, X, Target } from 'lucide-react';
 
 interface MonthlyTabProps {
   events: CalendarEvent[];
   setEvents: React.Dispatch<React.SetStateAction<CalendarEvent[]>>;
   tasks: Task[];
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+  dailyAnalyses: Record<string, any>;
+  weeklyAnalyses: Record<string, any>;
 }
 
-export const MonthlyTab: React.FC<MonthlyTabProps> = ({ events, setEvents, tasks, setTasks }) => {
+export const MonthlyTab: React.FC<MonthlyTabProps> = ({ events, setEvents, tasks, setTasks, dailyAnalyses, weeklyAnalyses }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>('');
-  const [addMode, setAddMode] = useState<'task' | 'event'>('event');
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [monthlySynthesis, setMonthlySynthesis] = useState<any>(null);
+  const [loadingSynthesis, setLoadingSynthesis] = useState(false);
   
-  const [formData, setFormData] = useState({ 
-    title: '', 
-    type: 'Other', 
-    startTime: '09:00', 
-    durationMinutes: 60,
-  });
+  const [formData, setFormData] = useState({ title: '', durationMinutes: 60 });
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDayOfMonth = new Date(year, month, 1).getDay();
+  const firstDayOfMonth = (new Date(year, month, 1).getDay() + 6) % 7; // Adjust to Monday start
 
-  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
-  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+  const weeklyInsightList = useMemo(() => {
+    return Object.entries(weeklyAnalyses)
+      .filter(([date]) => {
+        const d = new Date(date);
+        return d.getMonth() === month && d.getFullYear() === year;
+      })
+      .sort((a, b) => b[0].localeCompare(a[0]));
+  }, [weeklyAnalyses, month, year]);
 
-  const formatDate = (d: number) => {
-    const m = (month + 1).toString().padStart(2, '0');
-    const day = d.toString().padStart(2, '0');
-    return `${year}-${m}-${day}`;
-  };
-
-  const handleDayClick = (day: number) => {
-    setSelectedDate(formatDate(day));
-    setEditingId(null);
-    setFormData({ title: '', type: 'Other', startTime: '09:00', durationMinutes: 60 });
-    setIsModalOpen(true);
-  };
-
-  const handleEditClick = (item: any, date: string, mode: 'task' | 'event', e: React.MouseEvent) => {
-    e.stopPropagation();
-    setSelectedDate(date);
-    setEditingId(item.id);
-    setAddMode(mode);
-    setFormData({
-      title: item.title,
-      type: item.type,
-      startTime: item.isEvent ? item.startTime : (item.scheduledTime || '09:00'),
-      durationMinutes: item.durationMinutes
-    });
-    setIsModalOpen(true);
-  };
-
-  const calculateMinutes = (time: string) => {
-    const [h, m] = time.split(':').map(Number);
-    return h * 60 + m;
-  };
-
-  const calculateEndTimeString = (startTime: string, duration: number) => {
-    const totalMinutes = calculateMinutes(startTime) + duration;
-    const h = Math.floor(totalMinutes / 60) % 24;
-    const m = totalMinutes % 60;
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-  };
-
-  const calculateDuration = (start: string, end: string) => {
-    let s = calculateMinutes(start);
-    let e = calculateMinutes(end);
-    if (e < s) e += 1440;
-    return e - s;
+  const handleSynthesizeMonth = async () => {
+    if (weeklyInsightList.length === 0) return;
+    setLoadingSynthesis(true);
+    try {
+      const result = await synthesizePeriodPerformance(weeklyInsightList.map(w => w[1]), 'Month');
+      setMonthlySynthesis(result);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingSynthesis(false);
+    }
   };
 
   const handleSave = () => {
     if (!formData.title || !selectedDate) return;
-
-    if (addMode === 'task') {
-      if (editingId) {
-        setTasks(prev => prev.map(t => t.id === editingId ? {
-          ...t,
-          title: formData.title,
-          type: formData.type as TaskType,
-          durationMinutes: formData.durationMinutes,
-          scheduledTime: formData.startTime,
-          date: selectedDate
-        } : t));
-      } else {
-        const newTask: Task = {
-          id: `task-${Date.now()}`,
-          title: formData.title,
-          date: selectedDate,
-          type: formData.type as TaskType,
-          durationMinutes: formData.durationMinutes,
-          scheduledTime: formData.startTime,
-          status: TaskStatus.PLANNED,
-          isEssential: false,
-          subTasks: [],
-          origin: 'planning'
-        };
-        setTasks(prev => [...prev, newTask]);
-      }
-    } else {
-      if (editingId) {
-        setEvents(prev => prev.map(e => e.id === editingId ? {
-          ...e,
-          title: formData.title,
-          type: formData.type as EventType,
-          durationMinutes: formData.durationMinutes,
-          startTime: formData.startTime,
-          date: selectedDate
-        } : e));
-      } else {
-        const newEvent: CalendarEvent = {
-          id: `event-${Date.now()}`,
-          title: formData.title,
-          date: selectedDate,
-          startTime: formData.startTime,
-          durationMinutes: formData.durationMinutes,
-          type: formData.type as EventType,
-        };
-        setEvents(prev => [...prev, newEvent]);
-      }
-    }
-
-    setIsModalOpen(false);
-  };
-
-  const removeEvent = (id: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setEvents(prev => prev.filter(ev => ev.id !== id));
-    setIsModalOpen(false);
-  };
-
-  const removeTask = (id: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setTasks(prev => prev.filter(t => t.id !== id));
-    setIsModalOpen(false);
-  };
-
-  // Keyboard support for Modal
-  useEffect(() => {
-    if (!isModalOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const isInputFocused = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
-
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        handleSave();
-      } else if ((e.key === 'Delete' || e.key === 'Backspace') && editingId && !isInputFocused) {
-        e.preventDefault();
-        if (addMode === 'task') removeTask(editingId);
-        else removeEvent(editingId);
-      }
+    const newTask: Task = { 
+      id: `task-${Date.now()}`, 
+      title: formData.title, 
+      date: selectedDate, 
+      type: TaskType.OTHER, 
+      durationMinutes: formData.durationMinutes, 
+      scheduledTime: '09:00', 
+      status: TaskStatus.PLANNED, 
+      isEssential: false, 
+      subTasks: [], 
+      origin: 'planning' 
     };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isModalOpen, editingId, addMode, formData, selectedDate]);
+    setTasks(prev => [...prev, newTask]);
+    setIsModalOpen(false);
+    setFormData({ title: '', durationMinutes: 60 });
+  };
 
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
-  const blanks = Array.from({ length: (firstDayOfMonth + 6) % 7 }, (_, i) => i);
+  const blanks = Array.from({ length: firstDayOfMonth }, (_, i) => i);
 
   return (
-    <div className="max-w-6xl mx-auto h-full flex flex-col text-white pb-6 overflow-hidden">
-      <header className="flex justify-between items-center mb-6 shrink-0">
-        <div>
-          <h2 className="text-4xl font-bodoni font-bold floating-title">
+    <div className="max-w-6xl mx-auto flex flex-col text-white pb-20 px-4 min-h-screen">
+      <header className="flex justify-between items-center mb-8 shrink-0">
+        <div className="flex flex-col">
+          <h2 className="text-4xl md:text-5xl font-bodoni font-bold floating-title tracking-tight">
             {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
           </h2>
-          <p className="text-white/60 text-xs font-medium italic">Visionary planning and milestones.</p>
+          <p className="text-white/60 text-sm font-medium italic mt-2">Visionary planning and milestones.</p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={prevMonth} className="p-2 bg-white/10 hover:bg-white/20 border border-white/10 rounded-full text-white"><ChevronLeft size={18} /></Button>
-          <Button onClick={nextMonth} className="p-2 bg-white/10 hover:bg-white/20 border border-white/10 rounded-full text-white"><ChevronRight size={18} /></Button>
+        <div className="flex gap-4">
+          <Button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} variant="secondary" className="p-3 rounded-full hover:bg-white/20 transition-all">
+            <ChevronLeft size={24} />
+          </Button>
+          <Button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} variant="secondary" className="p-3 rounded-full hover:bg-white/20 transition-all">
+            <ChevronRight size={24} />
+          </Button>
         </div>
       </header>
 
-      <div className="grid grid-cols-7 glass-card rounded-[32px] overflow-hidden border border-white/20 flex-1 shadow-2xl">
+      {/* Calendar Grid */}
+      <div className="grid grid-cols-7 glass-card rounded-[40px] overflow-hidden border border-white/20 mb-16 shadow-2xl bg-white/5">
         {['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'].map(d => (
-          <div key={d} className="p-2 text-[9px] font-bold text-white/40 border-r border-b border-white/5 bg-white/5 text-center uppercase tracking-[0.2em]">
+          <div key={d} className="p-5 text-[10px] font-bold text-white/30 bg-white/5 text-center uppercase tracking-[0.3em] border-b border-white/5">
             {d}
           </div>
         ))}
-        {blanks.map(b => <div key={`b-${b}`} className="p-2 border-r border-b border-white/5 bg-black/5" />)}
+        {blanks.map(b => (
+          <div key={`b-${b}`} className="p-4 bg-black/10 border-r border-b border-white/5 last:border-r-0 min-h-[120px] md:min-h-[140px]" />
+        ))}
         {days.map(d => {
-          const dateStr = formatDate(d);
+          const mAdjusted = (month + 1).toString().padStart(2, '0');
+          const dAdjusted = d.toString().padStart(2, '0');
+          const dateStr = `${year}-${mAdjusted}-${dAdjusted}`;
           const dayEvents = events.filter(e => e.date === dateStr);
           const dayTasks = tasks.filter(t => t.date === dateStr && t.origin === 'planning');
-          const todayObj = new Date();
-          const isToday = todayObj.getFullYear() === year && todayObj.getMonth() === month && todayObj.getDate() === d;
+          const isToday = new Date().toLocaleDateString('en-CA') === dateStr;
 
           return (
             <div 
               key={d} 
-              className="p-2 border-r border-b border-white/5 hover:bg-white/5 transition-all cursor-pointer group relative overflow-hidden"
-              onClick={() => handleDayClick(d)}
+              className={`p-4 border-r border-b border-white/5 hover:bg-white/10 transition-all cursor-pointer min-h-[120px] md:min-h-[140px] flex flex-col group ${isToday ? 'bg-white/10 ring-1 ring-inset ring-white/20' : ''}`} 
+              onClick={() => { setSelectedDate(dateStr); setIsModalOpen(true); }}
             >
-              <div className="flex justify-between items-start mb-1.5">
-                <span className={`text-[11px] font-bold ${isToday ? 'bg-white text-[#c0373f] w-5 h-5 rounded-lg flex items-center justify-center shadow-lg' : 'text-white/60 group-hover:text-white'}`}>
-                  {d}
-                </span>
-                <Plus size={12} className="text-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-              <div className="space-y-1 overflow-y-auto max-h-[80%] scrollbar-hide">
-                {dayTasks.map(t => (
-                  <div 
-                    key={t.id} 
-                    onClick={(e) => handleEditClick(t, dateStr, 'task', e)}
-                    className="text-[8px] p-1.5 rounded-lg truncate font-bold bg-white/5 border border-white/10 text-white/90 flex justify-between items-center group/item hover:bg-white hover:text-[#c0373f] transition-all"
-                  >
-                    <span className="truncate">{t.title}</span>
+              <span className={`text-[13px] font-bold self-end mb-3 transition-colors ${isToday ? 'bg-white text-[#c0373f] px-2.5 py-1 rounded-full shadow-lg scale-110' : 'text-white/30 group-hover:text-white/60'}`}>
+                {d}
+              </span>
+              <div className="space-y-1.5 flex-1 flex flex-col justify-end">
+                {dayTasks.slice(0, 2).map(t => (
+                  <div key={t.id} className="text-[9px] p-1.5 rounded bg-white/5 truncate border border-white/10 text-white/90 shadow-sm">
+                    {t.title}
                   </div>
                 ))}
-                {dayEvents.map(ev => (
-                  <div 
-                    key={ev.id} 
-                    onClick={(e) => handleEditClick(ev, dateStr, 'event', e)}
-                    className={`text-[8px] p-1.5 rounded-lg truncate font-bold flex justify-between items-center group/item hover:bg-white hover:text-[#c0373f] transition-all bg-white/10 border border-white/10 text-white`}
-                  >
-                    <span className="truncate">{ev.startTime} {ev.title}</span>
+                {dayEvents.slice(0, 1).map(e => (
+                  <div key={e.id} className="text-[9px] p-1.5 rounded bg-white/20 truncate border border-white/20 text-white font-medium">
+                    {e.title}
                   </div>
                 ))}
+                {(dayTasks.length + dayEvents.length) > 3 && (
+                  <div className="text-[8px] text-center text-white/40 font-bold mt-1 tracking-wider uppercase">
+                    +{dayTasks.length + dayEvents.length - 3} more
+                  </div>
+                )}
               </div>
             </div>
           );
         })}
       </div>
 
+      {/* Reviews Section */}
+      <section className="mt-10 border-t border-white/10 pt-12">
+        <div className="flex justify-between items-center mb-10">
+           <h3 className="text-3xl font-bodoni font-bold text-white flex items-center gap-4">
+             <Target size={32} className="text-white/60" /> Weekly Strategic Reviews
+           </h3>
+           <Button onClick={handleSynthesizeMonth} variant="secondary" isLoading={loadingSynthesis} disabled={weeklyInsightList.length === 0} className="rounded-full h-12 px-10 shadow-xl border-white/20 hover:bg-white/10">
+             <Sparkles size={18} className="mr-3" /> Monthly Review
+           </Button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div className="space-y-8">
+             <h4 className="text-[12px] font-bold text-white/30 uppercase tracking-[0.3em]">Historical Weekly Syntheses</h4>
+             <div className="grid grid-cols-1 gap-6">
+               {weeklyInsightList.length > 0 ? weeklyInsightList.map(([date, data], idx) => (
+                 <div key={idx} className="glass-card p-8 rounded-[40px] border border-white/10 hover:border-white/20 transition-all group shadow-lg">
+                    <div className="flex justify-between items-center mb-4">
+                      <span className="text-[11px] font-mono text-white/40">{date}</span>
+                      <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest">Pivot: {data.improvement}</span>
+                    </div>
+                    <p className="text-[15px] italic text-white/90 leading-relaxed font-light font-bodoni mb-4">"{data.summary}"</p>
+                    <div className="flex flex-wrap gap-2">
+                      {data.patterns?.map((p: string, i: number) => (
+                        <span key={i} className="px-2.5 py-1 bg-white/5 rounded-lg text-[10px] text-white/50 border border-white/5">{p}</span>
+                      ))}
+                    </div>
+                 </div>
+               )) : (
+                 <div className="col-span-full py-24 text-center border-2 border-dashed border-white/5 rounded-[50px] text-white/20 text-sm font-medium">
+                   No weekly syntheses performed for this month yet.
+                 </div>
+               )}
+             </div>
+          </div>
+
+          <div className="relative">
+             {monthlySynthesis ? (
+               <div className="glass-card-dark p-12 rounded-[60px] border border-white/20 shadow-[0_40px_100px_rgba(0,0,0,0.4)] animate-fade-in space-y-12 sticky top-8">
+                  <div className="space-y-6">
+                    <h4 className="text-3xl font-bodoni font-bold text-white border-b border-white/10 pb-6">Monthly Vision</h4>
+                    <p className="text-[17px] leading-relaxed text-white/90 font-light font-bodoni">{monthlySynthesis.summary}</p>
+                  </div>
+                  <div className="bg-white/5 p-10 rounded-[48px] border border-white/10 shadow-inner group transition-all hover:bg-white/[0.07]">
+                     <p className="text-[12px] font-bold text-white/30 uppercase mb-5 tracking-[0.2em]">Core Strategic Improvement</p>
+                     <p className="text-[22px] font-bodoni font-bold text-white leading-tight group-hover:text-white/100 transition-colors">{monthlySynthesis.improvement}</p>
+                  </div>
+                  <div className="space-y-5">
+                     <p className="text-[12px] font-bold text-white/30 uppercase tracking-[0.2em]">Next Cycle Guidelines</p>
+                     <p className="text-[16px] text-white/70 italic leading-relaxed border-l-4 border-white/10 pl-8 py-2">{monthlySynthesis.suggestions}</p>
+                  </div>
+               </div>
+             ) : (
+               <div className="h-[500px] flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-[60px] bg-white/5 text-white/10 px-12 text-center group">
+                  <Brain size={80} className="mb-8 opacity-5 group-hover:opacity-10 transition-opacity" />
+                  <p className="text-lg italic font-bodoni font-light max-w-sm leading-relaxed text-white/30">
+                    Once you complete weekly strategic reviews, ZenithFlow will generate a visionary monthly summary here.
+                  </p>
+               </div>
+             )}
+          </div>
+        </div>
+      </section>
+
+      {/* Milestone Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[2000] flex items-center justify-center p-4" onClick={() => setIsModalOpen(false)}>
-          <div className="glass-card w-full max-w-sm rounded-[32px] shadow-2xl p-8 border border-white/20" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bodoni font-bold text-white tracking-wide">{editingId ? 'Edit Goal' : 'Plan Milestone'}</h3>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white/10 rounded-full text-white/40"><X size={20} /></button>
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-2xl z-[2000] flex items-center justify-center p-4" onClick={() => setIsModalOpen(false)}>
+          <div className="glass-card-dark w-full max-w-md rounded-[50px] p-10 border border-white/30 shadow-[0_40px_120px_rgba(0,0,0,0.6)] animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-10">
+              <div className="space-y-1">
+                <h3 className="text-2xl font-bodoni font-bold text-white tracking-wide">Daily Milestone</h3>
+                <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{selectedDate}</p>
+              </div>
+              <button onClick={() => setIsModalOpen(false)} className="p-3 hover:bg-white/10 rounded-full text-white/30 transition-all">
+                <X size={24} />
+              </button>
             </div>
-
-            {!editingId && (
-              <div className="flex p-0.5 bg-white/5 rounded-xl mb-6 border border-white/10">
-                <button 
-                  className={`flex-1 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all ${addMode === 'task' ? 'bg-white text-[#c0373f]' : 'text-white/40'}`}
-                  onClick={() => setAddMode('task')}
-                >
-                  Task
-                </button>
-                <button 
-                  className={`flex-1 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all ${addMode === 'event' ? 'bg-white text-[#c0373f]' : 'text-white/40'}`}
-                  onClick={() => setAddMode('event')}
-                >
-                  Event
-                </button>
-              </div>
-            )}
-
-            <div className="space-y-4">
+            <div className="space-y-8">
               <div>
-                <label className="text-[9px] font-bold text-white/30 uppercase tracking-widest mb-1 block">Focus Point</label>
-                <input autoFocus className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-white outline-none" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+                 <label className="text-[11px] font-bold text-white/30 uppercase tracking-[0.2em] mb-3 block">Primary Objective</label>
+                 <textarea 
+                   autoFocus 
+                   rows={3}
+                   className="w-full bg-black/40 border border-white/10 rounded-3xl px-6 py-5 text-base font-medium text-white focus:ring-2 focus:ring-white/20 outline-none transition-all placeholder:text-white/10 resize-none" 
+                   value={formData.title} 
+                   onChange={e => setFormData({...formData, title: e.target.value})} 
+                   placeholder="What is the vital few for this day?" 
+                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[9px] font-bold text-white/30 uppercase tracking-widest mb-1 block">Start Time</label>
-                  <input type="time" className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none" value={formData.startTime} onChange={e => setFormData({...formData, startTime: e.target.value})} />
-                </div>
-                <div>
-                  <label className="text-[9px] font-bold text-white/30 uppercase tracking-widest mb-1 block">End Time</label>
-                  <input 
-                    type="time" 
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white outline-none" 
-                    value={calculateEndTimeString(formData.startTime, formData.durationMinutes)} 
-                    onChange={e => {
-                      const newDuration = calculateDuration(formData.startTime, e.target.value);
-                      setFormData({...formData, durationMinutes: newDuration});
-                    }} 
-                  />
-                </div>
-              </div>
-              <Button onClick={handleSave} className="w-full py-3.5 rounded-xl bg-white text-[#c0373f] font-bold uppercase tracking-widest text-[10px] shadow-lg mt-2">
-                {editingId ? 'Update Milestone' : 'Commit Goal'}
+              <Button onClick={handleSave} className="w-full h-16 rounded-[28px] text-[13px] shadow-2xl hover:scale-[1.02] transition-transform">
+                Lock in Milestone
               </Button>
             </div>
           </div>

@@ -37,6 +37,8 @@ interface AppState {
   routine: { wake: string; meditation: boolean; exercise: boolean };
   review: string;
   analysis: ReflectionAnalysis | null;
+  dailyAnalyses: Record<string, ReflectionAnalysis>;
+  weeklyAnalyses: Record<string, any>;
   totalFocusMinutes: number;
 }
 
@@ -47,7 +49,7 @@ const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<Tab>(Tab.PLANNING);
   const [isTimelineOpen, setIsTimelineOpen] = useState(false);
   const [isGoogleSynced, setIsGoogleSynced] = useState(false);
-
+  
   const [tasks, setTasks] = useState<Task[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -55,19 +57,15 @@ const App: React.FC = () => {
   const [routine, setRoutine] = useState({ wake: '07:30', meditation: false, exercise: false });
   const [review, setReview] = useState('');
   const [analysis, setAnalysis] = useState<ReflectionAnalysis | null>(null);
+  const [dailyAnalyses, setDailyAnalyses] = useState<Record<string, ReflectionAnalysis>>({});
+  const [weeklyAnalyses, setWeeklyAnalyses] = useState<Record<string, any>>({});
   const [totalFocusMinutes, setTotalFocusMinutes] = useState(0);
 
   const historyRef = useRef<AppState[]>([]);
   const isUndoingRef = useRef(false);
 
-  // In Vite/CRA, env vars are bundled at build time.
-  // Although not 100% secure for client-side apps, it keeps secrets out of repo.
-  const USER_ID = process.env.APP_USER || 'REMOVED_REDACTED_USER';
-  const USER_PASS = process.env.APP_PASS || '';
-
   const handleLogin = (user: string, pass: string) => {
-    // If no password set in env, fail fast or allow default (logic up to you)
-    if (user.toLowerCase() === USER_ID.toLowerCase() && pass === USER_PASS) {
+    if (user?.toLowerCase() === 'REMOVED_REDACTED_USER' && pass === 'REMOVED_REDACTED_PASS') {
       setIsAuthenticated(true);
       localStorage.setItem('zenithflow_auth', 'true');
       return true;
@@ -80,7 +78,6 @@ const App: React.FC = () => {
       await signIn();
       const googleEvents = await fetchGoogleEvents();
       setEvents(prev => {
-        // Filter out old google events to avoid duplicates
         const filtered = prev.filter(e => !e.googleEventId);
         return [...filtered, ...googleEvents];
       });
@@ -106,10 +103,12 @@ const App: React.FC = () => {
       routine: { ...routine },
       review,
       analysis: analysis ? { ...analysis } : null,
+      dailyAnalyses: { ...dailyAnalyses },
+      weeklyAnalyses: { ...weeklyAnalyses },
       totalFocusMinutes,
     };
     historyRef.current = [...historyRef.current.slice(-49), snapshot];
-  }, [tasks, transactions, events, goals, routine, review, analysis, totalFocusMinutes]);
+  }, [tasks, transactions, events, goals, routine, review, analysis, dailyAnalyses, weeklyAnalyses, totalFocusMinutes]);
 
   const undo = useCallback(() => {
     if (historyRef.current.length === 0) return;
@@ -122,6 +121,8 @@ const App: React.FC = () => {
     setRoutine(lastState.routine);
     setReview(lastState.review);
     setAnalysis(lastState.analysis);
+    setDailyAnalyses(lastState.dailyAnalyses);
+    setWeeklyAnalyses(lastState.weeklyAnalyses);
     setTotalFocusMinutes(lastState.totalFocusMinutes);
     setTimeout(() => { isUndoingRef.current = false; }, 10);
   }, []);
@@ -154,6 +155,13 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo]);
 
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    if (dailyAnalyses[today]) {
+      setAnalysis(dailyAnalyses[today]);
+    }
+  }, [dailyAnalyses]);
+
   if (!isAuthenticated) {
     return <Login onLogin={handleLogin} />;
   }
@@ -168,7 +176,6 @@ const App: React.FC = () => {
   return (
     <div className="flex h-screen bg-transparent overflow-hidden md:p-[10px] animate-fade-in relative">
       <div className="flex flex-1 bg-black/5 md:rounded-[48px] overflow-hidden border-white/5 shadow-[0_0_40px_rgba(0,0,0,0.1)] relative">
-        {/* Desktop Sidebar */}
         <div className="hidden lg:block">
           <Sidebar currentTab={currentTab} setCurrentTab={setCurrentTab} onGoogleSync={syncGoogle} isSynced={isGoogleSynced} />
         </div>
@@ -176,9 +183,9 @@ const App: React.FC = () => {
         <main className="flex-1 flex flex-col min-w-0 p-4 md:p-10 overflow-hidden pb-20 md:pb-10">
           <div className="flex-1 overflow-y-auto scrollbar-hide">
             {currentTab === Tab.PLANNING && (
-              <PlanningTab
-                tasks={tasks}
-                setTasks={setUndoableTasks}
+              <PlanningTab 
+                tasks={tasks} 
+                setTasks={setUndoableTasks} 
                 events={events}
                 setEvents={setUndoableEvents}
                 routine={routine}
@@ -190,7 +197,19 @@ const App: React.FC = () => {
             )}
             {currentTab === Tab.REFLECTION && (
               <div className="max-w-4xl mx-auto w-full">
-                <ReflectionTab tasks={tasks} setTasks={setUndoableTasks} analysis={analysis} setAnalysis={setAnalysis} knowledge={[]} />
+                <ReflectionTab 
+                  tasks={tasks} 
+                  setTasks={setUndoableTasks} 
+                  analysis={analysis} 
+                  setAnalysis={(newAnalysis) => {
+                    setAnalysis(newAnalysis as any);
+                    if (newAnalysis) {
+                      const today = new Date().toISOString().split('T')[0];
+                      setDailyAnalyses(prev => ({ ...prev, [today]: newAnalysis as any }));
+                    }
+                  }} 
+                  knowledge={[]} 
+                />
               </div>
             )}
             {currentTab === Tab.FINANCE && (
@@ -200,27 +219,33 @@ const App: React.FC = () => {
             )}
             {currentTab === Tab.MONTHLY && (
               <div className="w-full h-full">
-                <MonthlyTab
-                  events={events}
-                  setEvents={setUndoableEvents}
+                <MonthlyTab 
+                  events={events} 
+                  setEvents={setUndoableEvents} 
                   tasks={tasks}
                   setTasks={setUndoableTasks}
+                  dailyAnalyses={dailyAnalyses}
+                  weeklyAnalyses={weeklyAnalyses}
                 />
               </div>
             )}
             {currentTab === Tab.WEEKLY && (
               <div className="w-full h-full">
-                <WeeklyTab
-                  events={events}
-                  setEvents={setUndoableEvents}
-                  tasks={tasks}
+                <WeeklyTab 
+                  events={events} 
+                  setEvents={setUndoableEvents} 
+                  tasks={tasks} 
                   setTasks={setUndoableTasks}
+                  dailyAnalyses={dailyAnalyses}
+                  onWeeklySynthesis={(weekStart, result) => {
+                    setWeeklyAnalyses(prev => ({ ...prev, [weekStart]: result }));
+                  }}
                 />
               </div>
             )}
             {currentTab === Tab.FOCUS && (
               <div className="w-full h-full">
-                <FocusTab
+                <FocusTab 
                   totalFocusMinutes={totalFocusMinutes}
                   setTotalFocusMinutes={setTotalFocusMinutes}
                 />
@@ -229,38 +254,34 @@ const App: React.FC = () => {
           </div>
         </main>
 
-        {/* Desktop Timeline Rail */}
         <div className="hidden xl:block">
           <CalendarRail tasks={tasks} setTasks={setUndoableTasks} events={events} setEvents={setUndoableEvents} />
         </div>
 
-        {/* Mobile Timeline Toggle Overlay */}
         {isTimelineOpen && (
           <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-xl animate-fade-in flex flex-col xl:hidden">
             <div className="flex justify-between items-center p-6 border-b border-white/10">
-              <h3 className="font-bodoni font-bold text-xl">Timeline</h3>
-              <button onClick={() => setIsTimelineOpen(false)} className="glass-card p-2 rounded-full">
-                <Clock className="rotate-45" size={24} />
-              </button>
+               <h3 className="font-bodoni font-bold text-xl">Timeline</h3>
+               <button onClick={() => setIsTimelineOpen(false)} className="glass-card p-2 rounded-full">
+                 <Clock className="rotate-45" size={24} />
+               </button>
             </div>
             <div className="flex-1 overflow-hidden">
-              <CalendarRail tasks={tasks} setTasks={setUndoableTasks} events={events} setEvents={setUndoableEvents} isMobile />
+               <CalendarRail tasks={tasks} setTasks={setUndoableTasks} events={events} setEvents={setUndoableEvents} isMobile />
             </div>
           </div>
         )}
 
-        {/* Floating Timeline Button for Mobile */}
-        <button
+        <button 
           onClick={() => setIsTimelineOpen(true)}
           className="xl:hidden fixed bottom-24 right-6 w-14 h-14 bg-white text-[#c0373f] rounded-full shadow-2xl flex items-center justify-center z-[50] animate-bounce"
         >
           <Clock size={28} />
         </button>
 
-        {/* Mobile Bottom Navigation */}
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-20 glass-card-dark border-t border-white/10 flex items-center justify-around px-4 z-[90] pb-env(safe-area-inset-bottom)">
           {mobileNavItems.map((item) => (
-            <button
+            <button 
               key={item.id}
               onClick={() => setCurrentTab(item.id)}
               className={`flex flex-col items-center gap-1 transition-all ${currentTab === item.id ? 'text-white' : 'text-white/40'}`}
@@ -269,8 +290,7 @@ const App: React.FC = () => {
               <span className="text-[10px] font-bold uppercase tracking-widest">{item.label}</span>
             </button>
           ))}
-          {/* More button for mobile to access extra tabs */}
-          <button
+          <button 
             onClick={() => setCurrentTab(currentTab === Tab.MONTHLY ? Tab.PLANNING : Tab.MONTHLY)}
             className={`flex flex-col items-center gap-1 transition-all ${[Tab.MONTHLY, Tab.FOCUS].includes(currentTab) ? 'text-white' : 'text-white/40'}`}
           >

@@ -55,7 +55,8 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
     startY: 0, startTop: 0, startHeight: 0, selectionStart: 0, selectionEnd: 0, hasMoved: false
   });
 
-  const hours = Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => i + START_HOUR);
+  // Generate only the hours that form start-to-end segments
+  const displayHours = useMemo(() => Array.from({ length: TOTAL_HOURS }, (_, i) => i + START_HOUR), []);
 
   useEffect(() => {
     const clockTimer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -178,7 +179,6 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
     setEditingId(null);
   };
 
-  // Keyboard support for Editing Popup
   useEffect(() => {
     if (!editingId) return;
 
@@ -280,7 +280,6 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
               setTasks(prev => [...prev, newTask]);
               setEditingId({ id: newTask.id, isEvent: false });
               
-              // Try auto-pushing to Google if synced
               try {
                 // @ts-ignore
                 if (gapi?.client?.getToken()) {
@@ -382,9 +381,9 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
           className="relative h-full w-full cursor-crosshair"
           onMouseDown={handleContainerMouseDown}
         >
-          {/* Hour Markers */}
+          {/* Hour Markers aligned to mathematically calculated TOTAL_MINUTES */}
           <div className="absolute inset-x-0 inset-y-0 flex flex-col pointer-events-none h-full">
-            {hours.map((hour) => (
+            {displayHours.map((hour) => (
               <div key={hour} className="flex-1 flex items-start gap-2 border-t border-white/5 relative">
                 <span className="text-[9px] text-white/30 w-8 text-right font-medium pr-1 -translate-y-2 whitespace-nowrap">
                   {hour.toString().padStart(2, '0')}
@@ -392,6 +391,12 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
                 <div className="flex-1 border-t border-white/5 absolute left-8 right-0 top-0"></div>
               </div>
             ))}
+            {/* The final line and label at the absolute bottom (END_HOUR) */}
+            <div className="flex items-start gap-2 border-t border-white/5 relative h-0">
+                <span className="text-[9px] text-white/30 w-8 text-right font-medium pr-1 -translate-y-2 whitespace-nowrap">
+                  {END_HOUR.toString().padStart(2, '0')}
+                </span>
+            </div>
           </div>
 
           {/* Task Area */}
@@ -401,7 +406,17 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
               const h = currentTime.getHours();
               const m = currentTime.getMinutes();
               const hourVal = (h < START_HOUR && h !== 0) ? h + 24 : (h === 0 ? 24 : h);
-              if (hourVal < START_HOUR || hourVal >= END_HOUR) return null;
+              if (hourVal < START_HOUR || hourVal >= END_HOUR) {
+                 // Check if it's the exact end hour with 0 minutes to draw the line at the very bottom
+                 if (hourVal === END_HOUR && m === 0) {
+                    return (
+                        <div className="absolute left-0 right-0 border-t-2 border-white/60 z-[100] pointer-events-none flex items-center" style={{ top: `100%` }}>
+                          <div className="w-2.5 h-2.5 rounded-full bg-white -ml-1 shadow-[0_0_10px_rgba(255,255,255,0.8)]"></div>
+                        </div>
+                      );
+                 }
+                 return null;
+              }
               const topVal = ((hourVal - START_HOUR) * 60 + m) / TOTAL_MINUTES * 100;
               return (
                 <div className="absolute left-0 right-0 border-t-2 border-white/60 z-[100] pointer-events-none flex items-center" style={{ top: `${topVal}%` }}>

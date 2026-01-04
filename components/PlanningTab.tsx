@@ -4,7 +4,7 @@ import { Task, TaskType, TaskStatus, KnowledgeItem, CalendarEvent, EventType } f
 import { Button } from './Button';
 import { generateMorningPlan } from '../services/geminiService';
 import { 
-  Zap, Trash2, CheckCircle2, Circle, X, Clock, Sunrise, Wind, Dumbbell
+  Zap, Trash2, CheckCircle2, Circle, X, Clock, Sunrise, Brain, Dumbbell
 } from 'lucide-react';
 
 interface PlanningTabProps {
@@ -32,18 +32,20 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
   const weekday = today.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
 
   const calculateEndTime = (startTime: string, duration: number) => {
+    if (!startTime) return '00:00';
     const [h, m] = startTime.split(':').map(Number);
-    const totalMinutes = h * 60 + m + duration;
+    const totalMinutes = (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m) + duration;
     const endH = Math.floor(totalMinutes / 60) % 24;
     const endM = totalMinutes % 60;
     return `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
   };
 
   const calculateDuration = (start: string, end: string) => {
+    if (!start || !end) return 60;
     const [sh, sm] = start.split(':').map(Number);
     const [eh, em] = end.split(':').map(Number);
-    let startMins = sh * 60 + sm;
-    let endMins = eh * 60 + em;
+    let startMins = (isNaN(sh) ? 0 : sh) * 60 + (isNaN(sm) ? 0 : sm);
+    let endMins = (isNaN(eh) ? 0 : eh) * 60 + (isNaN(em) ? 0 : em);
     if (endMins < startMins) endMins += 1440;
     return endMins - startMins;
   };
@@ -77,19 +79,23 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
     setLoading(true);
     try {
       const result = await generateMorningPlan(tasks.filter(t => t.date === todayStr), knowledge);
-      const suggestedTasks: Task[] = result.tasks.map((t: any, idx: number) => ({
-        id: `gen-${Date.now()}-${idx}`,
-        title: t.title,
-        date: todayStr,
-        type: t.title.toLowerCase().includes('english') ? TaskType.ENGLISH_SPEAKING : 
-              t.title.toLowerCase().includes('ai') ? TaskType.AI_PRACTICE : 
-              t.title.toLowerCase().includes('urbanism') ? TaskType.LECTURE : TaskType.OTHER,
-        durationMinutes: t.durationMinutes,
-        scheduledTime: t.startTime,
-        status: TaskStatus.PLANNED,
-        isEssential: t.isEssential,
-        origin: 'daily'
-      }));
+      const suggestedTasks: Task[] = (result.tasks || []).filter((t: any) => t != null).map((t: any, idx: number) => {
+        const title = t.title || "New Task";
+        const titleLower = title.toLowerCase();
+        return {
+          id: `gen-${Date.now()}-${idx}`,
+          title,
+          date: todayStr,
+          type: titleLower.includes('english') ? TaskType.ENGLISH_SPEAKING : 
+                titleLower.includes('ai') ? TaskType.AI_PRACTICE : 
+                titleLower.includes('urbanism') ? TaskType.LECTURE : TaskType.OTHER,
+          durationMinutes: t.durationMinutes || 60,
+          scheduledTime: t.startTime || "09:00",
+          status: TaskStatus.PLANNED,
+          isEssential: !!t.isEssential,
+          origin: 'daily'
+        };
+      });
       setTasks(prev => [...prev, ...suggestedTasks]);
       if (result.advice) setMantra(result.advice);
     } catch (e) {
@@ -117,20 +123,16 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
     setEditingId(null);
   };
 
-  // Keyboard Shortcuts for Edit Modal
   useEffect(() => {
     if (!editingId) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // If typing in the title input, we only want Enter to save.
-      // Delete should only work globally or if focused element is not an input.
       const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
 
       if (e.key === 'Enter') {
         e.preventDefault();
         setEditingId(null);
       } else if ((e.key === 'Delete' || e.key === 'Backspace') && !isInput) {
-        // Only trigger delete shortcut if NOT focused on an input to avoid deleting characters
         e.preventDefault();
         deleteItem(editingId.id, editingId.isEvent);
       }
@@ -265,7 +267,8 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
                 <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Wake Up</p>
                 <input 
                   type="time" 
-                  className="bg-transparent border-none p-0 text-lg font-bodoni font-bold text-white outline-none focus:ring-0 w-full cursor-pointer"
+                  className="bg-transparent border-none p-0 text-lg font-bodoni font-bold text-white outline-none focus:ring-0 w-full cursor-pointer appearance-none"
+                  style={{ background: 'transparent' }}
                   value={routine.wake}
                   onChange={(e) => setRoutine(prev => ({ ...prev, wake: e.target.value }))}
                 />
@@ -276,7 +279,7 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
             onClick={() => setRoutine(prev => ({ ...prev, meditation: !prev.meditation }))}
             className={`p-5 rounded-2xl flex items-center gap-5 transition-all border ${routine.meditation ? 'bg-white/20 border-white/40 shadow-inner' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
           >
-             <div className={`p-3 rounded-xl ${routine.meditation ? 'bg-white text-[#bf363e]' : 'bg-white/10 text-white/40'}`}><Wind size={20} /></div>
+             <div className={`p-3 rounded-xl ${routine.meditation ? 'bg-white text-[#bf363e]' : 'bg-white/10 text-white/40'}`}><Brain size={20} /></div>
              <div className="text-left flex-1">
                 <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Meditation</p>
                 <p className={`text-lg font-bodoni font-bold ${routine.meditation ? 'text-white' : 'text-white/40'}`}>{routine.meditation ? 'Done' : 'Open'}</p>
