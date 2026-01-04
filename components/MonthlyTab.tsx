@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CalendarEvent, EventType, Task, TaskType, TaskStatus } from '../types';
 import { ChevronLeft, ChevronRight, Plus, X, Clock, ClipboardList, Trash2 } from 'lucide-react';
 import { Button } from './Button';
@@ -134,15 +134,38 @@ export const MonthlyTab: React.FC<MonthlyTabProps> = ({ events, setEvents, tasks
     setIsModalOpen(false);
   };
 
-  const removeEvent = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const removeEvent = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setEvents(prev => prev.filter(ev => ev.id !== id));
+    setIsModalOpen(false);
   };
 
-  const removeTask = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const removeTask = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setTasks(prev => prev.filter(t => t.id !== id));
+    setIsModalOpen(false);
   };
+
+  // Keyboard support for Modal
+  useEffect(() => {
+    if (!isModalOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isInputFocused = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSave();
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && editingId && !isInputFocused) {
+        e.preventDefault();
+        if (addMode === 'task') removeTask(editingId);
+        else removeEvent(editingId);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen, editingId, addMode, formData, selectedDate]);
 
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
   const blanks = Array.from({ length: (firstDayOfMonth + 6) % 7 }, (_, i) => i);

@@ -2,13 +2,15 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Task, TaskType, TaskStatus, CalendarEvent, EventType } from '../types';
 import { Button } from './Button';
-import { Trash2, X } from 'lucide-react';
+import { Trash2, X, Globe } from 'lucide-react';
+import { pushToGoogleCalendar } from '../services/googleCalendarService';
 
 interface CalendarRailProps {
   tasks: Task[];
   setTasks?: React.Dispatch<React.SetStateAction<Task[]>>;
   events?: CalendarEvent[];
   setEvents?: React.Dispatch<React.SetStateAction<CalendarEvent[]>>;
+  isMobile?: boolean;
 }
 
 const START_HOUR = 5;
@@ -17,7 +19,7 @@ const TOTAL_HOURS = END_HOUR - START_HOUR;
 const TOTAL_MINUTES = TOTAL_HOURS * 60;
 const SNAP_MINUTES = 15;
 
-export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, events = [], setEvents }) => {
+export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, events = [], setEvents, isMobile }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isCreating, setIsCreating] = useState(false);
   const [selection, setSelection] = useState<{ start: number; end: number } | null>(null);
@@ -95,11 +97,11 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
     const allItems = [
       ...todayTasks.map(t => ({ 
         id: t.id, title: t.title, startTime: t.scheduledTime!, duration: t.durationMinutes, 
-        type: t.type, isTask: true, status: t.status 
+        type: t.type, isTask: true, status: t.status, googleEventId: t.googleEventId 
       })),
       ...todayEvents.map(e => ({
         id: e.id, title: e.title, startTime: e.startTime, duration: e.durationMinutes, 
-        type: e.type, isTask: false 
+        type: e.type, isTask: false, googleEventId: e.googleEventId 
       }))
     ].sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
 
@@ -148,7 +150,6 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
         const top = ((start - START_HOUR * 60) / TOTAL_MINUTES) * 100;
         const height = (item.duration / TOTAL_MINUTES) * 100;
         
-        // Use ~85% width as requested in feedback
         const width = 85 / columns.length;
         const left = item._colIndex * width;
 
@@ -166,6 +167,37 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
     return result;
   }, [tasks, events, todayStr]);
 
+  const deleteItem = (id: string, isEvent: boolean, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const { setEvents, setTasks } = stateRef.current;
+    if (isEvent && setEvents) {
+      setEvents(prev => prev.filter(ev => ev.id !== id));
+    } else if (setTasks) {
+      setTasks(prev => prev.filter(t => t.id !== id));
+    }
+    setEditingId(null);
+  };
+
+  // Keyboard support for Editing Popup
+  useEffect(() => {
+    if (!editingId) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isInputFocused = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        setEditingId(null);
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && !isInputFocused) {
+        e.preventDefault();
+        deleteItem(editingId.id, editingId.isEvent);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editingId, setEvents, setTasks]);
+
   useEffect(() => {
     const handleMove = (e: MouseEvent) => {
       const state = dragRef.current;
@@ -176,7 +208,6 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
 
       const deltaY = e.clientY - state.startY;
 
-      // Threshold to distinguish click from intentional drag
       if (Math.abs(deltaY) > 5) {
         state.hasMoved = true;
         if (state.mode !== 'create') {
@@ -221,7 +252,7 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
       }
     };
 
-    const handleUp = (e: MouseEvent) => {
+    const handleUp = async (e: MouseEvent) => {
       const state = dragRef.current;
       if (!state.active) return;
 
@@ -231,6 +262,7 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
             const durationPercent = state.selectionEnd - state.selectionStart;
             const durationMinutes = Math.round((durationPercent / 100) * TOTAL_MINUTES);
             const startMinsTotal = (state.selectionStart / 100) * TOTAL_MINUTES + START_HOUR * 60;
+            const time = minutesToTime(startMinsTotal);
             
             if (durationMinutes >= 15) {
               const newTask: Task = {
@@ -239,18 +271,27 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
                 date: todayStr,
                 type: TaskType.OTHER,
                 durationMinutes: durationMinutes,
-                scheduledTime: minutesToTime(startMinsTotal),
+                scheduledTime: time,
                 status: TaskStatus.PLANNED,
                 isEssential: false,
                 origin: 'daily'
               };
+              
               setTasks(prev => [...prev, newTask]);
               setEditingId({ id: newTask.id, isEvent: false });
+              
+              // Try auto-pushing to Google if synced
+              try {
+                // @ts-ignore
+                if (gapi?.client?.getToken()) {
+                   const gId = await pushToGoogleCalendar('New Task', todayStr, time, durationMinutes);
+                   setTasks(prev => prev.map(t => t.id === newTask.id ? { ...t, googleEventId: gId as string } : t));
+                }
+              } catch(e) { console.debug("Auto-push skipped", e); }
             }
         }
       } else if (state.id) {
          if (!state.hasMoved) {
-            // Force setting editing state on reliable click
             setEditingId({ id: state.id, isEvent: state.isEvent });
          }
          setActiveDrag(null);
@@ -283,55 +324,19 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
     setSelection({ start: snappedY, end: snappedY + minStep });
     
     dragRef.current = {
-      active: true,
-      id: null,
-      isEvent: false,
-      mode: 'create',
-      startY: e.clientY,
-      startTop: 0,
-      startHeight: 0,
-      selectionStart: snappedY,
-      selectionEnd: snappedY + minStep,
-      hasMoved: false
+      active: true, id: null, isEvent: false, mode: 'create',
+      startY: e.clientY, startTop: 0, startHeight: 0,
+      selectionStart: snappedY, selectionEnd: snappedY + minStep, hasMoved: false
     };
   };
 
   const handleItemMouseDown = (e: React.MouseEvent, id: string, isEvent: boolean, top: number, height: number, mode: 'move' | 'resize') => {
     e.stopPropagation();
-    
     dragRef.current = {
-      active: true,
-      id,
-      isEvent,
-      mode,
-      startY: e.clientY,
-      startTop: top,
-      startHeight: height,
-      selectionStart: 0,
-      selectionEnd: 0,
-      hasMoved: false
+      active: true, id, isEvent, mode, startY: e.clientY, startTop: top, startHeight: height,
+      selectionStart: 0, selectionEnd: 0, hasMoved: false
     };
-
-    setActiveDrag({
-      id,
-      isEvent,
-      mode,
-      startY: e.clientY,
-      startTop: top,
-      startHeight: height,
-      hasMoved: false
-    });
-  };
-
-  const deleteItem = (id: string, isEvent: boolean, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const { setEvents, setTasks } = stateRef.current;
-    if (isEvent && setEvents) {
-      setEvents(prev => prev.filter(ev => ev.id !== id));
-    } else if (setTasks) {
-      setTasks(prev => prev.filter(t => t.id !== id));
-    }
-    setEditingId(null);
+    setActiveDrag({ id, isEvent, mode, startY: e.clientY, startTop: top, startHeight: height, hasMoved: false });
   };
 
   const updateItem = (id: string, isEvent: boolean, updates: any) => {
@@ -360,14 +365,16 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
   const editingEndTime = editingData ? calculateEndTime(editingData.startTime, editingData.duration) : '';
 
   return (
-    <div className="w-[300px] border-l border-white/10 bg-black/10 backdrop-blur-xl h-full shrink-0 flex flex-col font-sans relative z-[60] select-none shadow-2xl overflow-hidden">
-      <div className="p-5 border-b border-white/10 shrink-0 bg-transparent z-[70] flex justify-between items-center">
-        <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Daily Timeline</span>
-        <div className="flex items-center gap-1.5">
-           <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.8)]"></span>
-           <span className="text-[9px] text-white/40 font-bold uppercase tracking-widest">CET (NL)</span>
+    <div className={`${isMobile ? 'w-full' : 'w-[300px] border-l border-white/10'} bg-black/10 h-full shrink-0 flex flex-col font-sans relative z-[60] select-none shadow-2xl overflow-hidden`}>
+      {!isMobile && (
+        <div className="p-5 border-b border-white/10 shrink-0 bg-transparent z-[70] flex justify-between items-center">
+          <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Daily Timeline</span>
+          <div className="flex items-center gap-1.5">
+             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shadow-[0_0_8px_rgba(255,255,255,0.8)]"></span>
+             <span className="text-[9px] text-white/40 font-bold uppercase tracking-widest">CET (NL)</span>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="relative flex-1 overflow-hidden px-2 py-4">
         <div 
@@ -434,12 +441,15 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
                 >
                   <div className="flex justify-between items-start mb-0.5">
                     <p className="font-bodoni font-bold leading-tight truncate w-full uppercase tracking-tight pr-4">{item.title || '(Untitled)'}</p>
-                    <button 
-                      onClick={(e) => deleteItem(item.id, !item.isTask, e)}
-                      className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 text-white/40 hover:text-white transition-opacity p-0.5"
-                    >
-                      <Trash2 size={12} />
-                    </button>
+                    <div className="absolute top-1 right-1 flex items-center gap-1">
+                       {item.googleEventId && <Globe size={10} className="text-white/40" />}
+                       <button 
+                        onClick={(e) => deleteItem(item.id, !item.isTask, e)}
+                        className="opacity-0 group-hover:opacity-100 text-white/40 hover:text-white transition-opacity p-0.5"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
                   </div>
                   <p className="text-white/60 font-medium text-[8px] tabular-nums tracking-tighter shrink-0">
                     {item.startTime} — {endTime}
@@ -463,8 +473,7 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
       {/* Edit Popup */}
       {editingData && (
         <div 
-          className="fixed w-[260px] glass-card-dark rounded-[32px] p-8 z-[2000] border border-white/30 animate-in fade-in zoom-in-95 cursor-default text-white pointer-events-auto shadow-[0_32px_80px_rgba(0,0,0,0.5)]"
-          style={{ top: '20px', right: '320px' }}
+          className={`fixed glass-card-dark rounded-[32px] p-6 z-[2000] border border-white/30 animate-in fade-in zoom-in-95 cursor-default text-white pointer-events-auto shadow-[0_32px_80px_rgba(0,0,0,0.5)] ${isMobile ? 'inset-4 top-auto bottom-24' : 'w-[260px] top-[20px] right-[320px]'}`}
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
         >
@@ -486,11 +495,11 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
             
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[9px] font-bold text-white/30 uppercase mb-2 block tracking-widest">Start Time</label>
+                  <label className="text-[9px] font-bold text-white/30 uppercase mb-2 block tracking-widest">Start</label>
                   <input type="time" className="w-full text-xs font-bold text-white bg-black/40 border border-white/10 rounded-lg p-2.5 outline-none" value={editingData.startTime} onChange={(e) => updateItem(editingData.id, !editingData.isTask, editingData.isTask ? { scheduledTime: e.target.value } : { startTime: e.target.value })} />
                 </div>
                 <div>
-                  <label className="text-[9px] font-bold text-white/30 uppercase mb-2 block tracking-widest">End Time</label>
+                  <label className="text-[9px] font-bold text-white/30 uppercase mb-2 block tracking-widest">End</label>
                   <input type="time" className="w-full text-xs font-bold text-white bg-black/40 border border-white/10 rounded-lg p-2.5 outline-none" value={editingEndTime} onChange={(e) => {
                     const newDuration = calculateDuration(editingData.startTime, e.target.value);
                     updateItem(editingData.id, !editingData.isTask, { durationMinutes: newDuration });
@@ -498,20 +507,7 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
                 </div>
             </div>
 
-            {editingData.isTask && (
-              <div>
-                <label className="text-[9px] font-bold text-white/30 uppercase mb-2 block tracking-widest">Category</label>
-                <select 
-                  className="w-full text-xs font-bold text-white bg-black/40 border border-white/10 rounded-lg p-2.5 outline-none appearance-none"
-                  value={editingData.type}
-                  onChange={(e) => updateItem(editingData.id, !editingData.isTask, { type: e.target.value })}
-                >
-                  {Object.values(TaskType).map(t => <option key={t} value={t} className="bg-[#1a1a1a]">{t}</option>)}
-                </select>
-              </div>
-            )}
-
-            <div className="pt-4 flex gap-3">
+            <div className="pt-2 flex gap-3">
                 <button onClick={(e) => deleteItem(editingData.id, !editingData.isTask, e)} className="p-3 text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-xl transition-all border border-red-500/20"><Trash2 size={16} /></button>
                 <Button onClick={() => setEditingId(null)} variant="primary" className="flex-1">Save</Button>
             </div>

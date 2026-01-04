@@ -38,25 +38,32 @@ const reflectionResponseSchema = {
   required: ["insight", "bookReference", "concept", "actionItem"]
 };
 
-// Define the response schema for crypto psychology analysis
 const cryptoPsychologyResponseSchema = {
   type: Type.OBJECT,
   properties: {
-    psychAnalysis: { type: Type.STRING, description: "A psychological analysis of the trade based on performance principles." },
-    mentalModel: { type: Type.STRING, description: "A suggested mental model or representation for improvement." }
+    psychAnalysis: { type: Type.STRING },
+    mentalModel: { type: Type.STRING }
   },
   required: ["psychAnalysis", "mentalModel"]
 };
 
-export const generateMorningPlan = async (currentTasks: Task[], knowledgeBase: KnowledgeItem[] = []) => {
-  const knowledgeContext = knowledgeBase.length > 0 
-    ? `Reference these specific mental models from Jack's personal library: ${knowledgeBase.map(k => `[${k.bookTitle}: ${k.content}]`).join(', ')}`
-    : "";
+// 全域財務分析 Schema
+const financeAnalysisResponseSchema = {
+  type: Type.OBJECT,
+  properties: {
+    overallStatus: { type: Type.STRING, description: "One word: Growth, Refining, or Cautious" },
+    summary: { type: Type.STRING, description: "Overall summary of financial health." },
+    eurInsights: { type: Type.STRING, description: "Advice on EUR spending using Essentialism principles." },
+    cryptoInsights: { type: Type.STRING, description: "Analysis of trading performance using Peak principles." },
+    actionableStep: { type: Type.STRING, description: "One immediate thing Jack can do to improve." },
+    bookQuote: { type: Type.STRING, description: "A relevant quote from the 10 management books." }
+  },
+  required: ["overallStatus", "summary", "eurInsights", "cryptoInsights", "actionableStep", "bookQuote"]
+};
 
+export const generateMorningPlan = async (currentTasks: Task[], knowledgeBase: KnowledgeItem[] = []) => {
   const prompt = `
     Jack's current tasks from timetable: ${JSON.stringify(currentTasks)}.
-    ${knowledgeContext}
-    
     Please organize the day. Rules:
     1. Identify existing Lectures/Study.
     2. Insert "English Speaking" (30m) and "AI Practice" (45m).
@@ -78,10 +85,6 @@ export const generateMorningPlan = async (currentTasks: Task[], knowledgeBase: K
 };
 
 export const analyzeDailyReflection = async (tasks: Task[], knowledgeBase: KnowledgeItem[] = []) => {
-  const knowledgeContext = knowledgeBase.length > 0 
-    ? `Apply these specific principles from Jack's personal library: ${knowledgeBase.map(k => `[${k.bookTitle}: ${k.content}]`).join(', ')}`
-    : "";
-
   const prompt = `
     Analyze Jack's day:
     ${JSON.stringify(tasks.map(t => ({
@@ -90,9 +93,7 @@ export const analyzeDailyReflection = async (tasks: Task[], knowledgeBase: Knowl
       actual: t.actualDurationMinutes || 0,
       reflection: t.reflection || ""
     })))}
-    ${knowledgeContext}
-
-    Quote the specific knowledge items Jack has provided if relevant.
+    Quote specific principles from books where relevant.
   `;
 
   const response = await ai.models.generateContent({
@@ -108,19 +109,11 @@ export const analyzeDailyReflection = async (tasks: Task[], knowledgeBase: Knowl
   return JSON.parse(response.text || "{}");
 };
 
-/**
- * Analyzes crypto trading psychology and suggests mental models for improvement.
- * Based on the principles of "Peak" (deliberate practice) and "Deep Work".
- */
 export const analyzeCryptoPsychology = async (transaction: Transaction, winRate: number) => {
   const prompt = `
-    Analyze this crypto transaction:
-    ${JSON.stringify(transaction)}
-    Current overall win rate: ${(winRate * 100).toFixed(1)}%
-
-    Based on the principles of "Peak" (deliberate practice), analyze Jack's performance and mindset.
-    Examine the notes for emotional triggers or cognitive biases.
-    Suggest a "mental representation" (mental model) to improve or sustain high performance in trading.
+    Analyze this crypto transaction: ${JSON.stringify(transaction)}
+    Current win rate: ${(winRate * 100).toFixed(1)}%
+    Based on "Peak", analyze performance and mindset. Suggest a mental model.
   `;
 
   const response = await ai.models.generateContent({
@@ -130,6 +123,35 @@ export const analyzeCryptoPsychology = async (transaction: Transaction, winRate:
       systemInstruction: ZENITH_SYSTEM_INSTRUCTION,
       responseMimeType: "application/json",
       responseSchema: cryptoPsychologyResponseSchema
+    }
+  });
+
+  return JSON.parse(response.text || "{}");
+};
+
+/**
+ * 深度分析 Jack 的全域財務狀況
+ */
+export const analyzeTotalFinancialStatus = async (transactions: Transaction[]) => {
+  const prompt = `
+    Please analyze Jack's financial records across multiple weeks/months:
+    ${JSON.stringify(transactions)}
+    
+    Current environment: Jack is in TU Delft (EUR living), trading in Crypto (NTD).
+    Rules:
+    1. EUR: Analyze the spending categories. Are there patterns of "Trivial Many"? Suggest 1 category to cut back.
+    2. Crypto: Look for "Deliberate Practice" signs. Is the win rate stable or improving?
+    3. Time Series: Mention if this month/week looks healthier than typical based on the data.
+    4. Provide a unified status and a specific actionable step.
+  `;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
+    contents: prompt,
+    config: {
+      systemInstruction: ZENITH_SYSTEM_INSTRUCTION,
+      responseMimeType: "application/json",
+      responseSchema: financeAnalysisResponseSchema
     }
   });
 

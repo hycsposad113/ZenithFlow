@@ -3,19 +3,20 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { PlanningTab } from './components/PlanningTab';
 import { ReflectionTab } from './components/ReflectionTab';
 import { FinanceTab } from './components/FinanceTab';
-import { KnowledgeTab } from './components/KnowledgeTab';
 import { MonthlyTab } from './components/MonthlyTab';
 import { WeeklyTab } from './components/WeeklyTab';
 import { FocusTab } from './components/FocusTab';
 import { Sidebar } from './components/Sidebar';
 import { CalendarRail } from './components/CalendarRail';
-import { Task, Transaction, KnowledgeItem, CalendarEvent } from './types';
+import { Login } from './components/Login';
+import { Task, Transaction, CalendarEvent } from './types';
+import { Home, BarChart2, TrendingUp, Calendar, Target, Timer, Clock } from 'lucide-react';
+import { initGoogleAuth, signIn, fetchGoogleEvents } from './services/googleCalendarService';
 
 enum Tab {
   PLANNING = 'planning',
   REFLECTION = 'reflection',
   FINANCE = 'finance',
-  KNOWLEDGE = 'knowledge',
   MONTHLY = 'monthly',
   WEEKLY = 'weekly',
   FOCUS = 'focus'
@@ -31,7 +32,6 @@ interface ReflectionAnalysis {
 interface AppState {
   tasks: Task[];
   transactions: Transaction[];
-  knowledge: KnowledgeItem[];
   events: CalendarEvent[];
   goals: string[];
   routine: { wake: string; meditation: boolean; exercise: boolean };
@@ -41,11 +41,15 @@ interface AppState {
 }
 
 const App: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('zenithflow_auth') === 'true';
+  });
   const [currentTab, setCurrentTab] = useState<Tab>(Tab.PLANNING);
+  const [isTimelineOpen, setIsTimelineOpen] = useState(false);
+  const [isGoogleSynced, setIsGoogleSynced] = useState(false);
   
   const [tasks, setTasks] = useState<Task[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [knowledge, setKnowledge] = useState<KnowledgeItem[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [goals, setGoals] = useState<string[]>(['', '', '']);
   const [routine, setRoutine] = useState({ wake: '07:30', meditation: false, exercise: false });
@@ -56,12 +60,41 @@ const App: React.FC = () => {
   const historyRef = useRef<AppState[]>([]);
   const isUndoingRef = useRef(false);
 
+  const handleLogin = (user: string, pass: string) => {
+    if (user.toLowerCase() === 'REMOVED_REDACTED_USER' && pass === 'REMOVED_REDACTED_PASS') {
+      setIsAuthenticated(true);
+      localStorage.setItem('zenithflow_auth', 'true');
+      return true;
+    }
+    return false;
+  };
+
+  const syncGoogle = async () => {
+    try {
+      await signIn();
+      const googleEvents = await fetchGoogleEvents();
+      setEvents(prev => {
+        // Filter out old google events to avoid duplicates
+        const filtered = prev.filter(e => !e.googleEventId);
+        return [...filtered, ...googleEvents];
+      });
+      setIsGoogleSynced(true);
+    } catch (e) {
+      console.error("Google Sync Failed", e);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      initGoogleAuth();
+    }
+  }, [isAuthenticated]);
+
   const saveToHistory = useCallback(() => {
     if (isUndoingRef.current) return;
     const snapshot: AppState = {
       tasks: JSON.parse(JSON.stringify(tasks)),
       transactions: JSON.parse(JSON.stringify(transactions)),
-      knowledge: JSON.parse(JSON.stringify(knowledge)),
       events: JSON.parse(JSON.stringify(events)),
       goals: [...goals],
       routine: { ...routine },
@@ -70,7 +103,7 @@ const App: React.FC = () => {
       totalFocusMinutes,
     };
     historyRef.current = [...historyRef.current.slice(-49), snapshot];
-  }, [tasks, transactions, knowledge, events, goals, routine, review, analysis, totalFocusMinutes]);
+  }, [tasks, transactions, events, goals, routine, review, analysis, totalFocusMinutes]);
 
   const undo = useCallback(() => {
     if (historyRef.current.length === 0) return;
@@ -78,7 +111,6 @@ const App: React.FC = () => {
     const lastState = historyRef.current.pop()!;
     setTasks(lastState.tasks);
     setTransactions(lastState.transactions);
-    setKnowledge(lastState.knowledge);
     setEvents(lastState.events);
     setGoals(lastState.goals);
     setRoutine(lastState.routine);
@@ -91,11 +123,6 @@ const App: React.FC = () => {
   const setUndoableTasks = (newTasks: React.SetStateAction<Task[]>) => {
     saveToHistory();
     setTasks(newTasks);
-  };
-
-  const setUndoableKnowledge = (newKnowledge: React.SetStateAction<KnowledgeItem[]>) => {
-    saveToHistory();
-    setKnowledge(newKnowledge);
   };
 
   const setUndoableEvents = (newEvents: React.SetStateAction<CalendarEvent[]>) => {
@@ -121,71 +148,130 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo]);
 
-  return (
-    <div className="flex h-screen bg-transparent overflow-hidden p-[10px]">
-      <div className="flex flex-1 bg-black/5 rounded-[20px] overflow-hidden border border-white/5 shadow-[0_0_40px_rgba(0,0,0,0.1)]">
-        <Sidebar currentTab={currentTab} setCurrentTab={setCurrentTab} />
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
 
-        <main className="flex-1 flex flex-col min-w-0 p-6 md:p-10 overflow-hidden">
-          {currentTab === Tab.PLANNING && (
-            <PlanningTab 
-              tasks={tasks} 
-              setTasks={setUndoableTasks} 
-              events={events}
-              setEvents={setUndoableEvents}
-              routine={routine}
-              setRoutine={setUndoableRoutine}
-              analysis={analysis}
-              knowledge={knowledge}
-              totalFocusMinutes={totalFocusMinutes}
-            />
-          )}
-          {currentTab === Tab.REFLECTION && (
-            <div className="overflow-y-auto max-w-4xl mx-auto w-full h-full scrollbar-hide">
-              <ReflectionTab tasks={tasks} setTasks={setUndoableTasks} analysis={analysis} setAnalysis={setAnalysis} knowledge={knowledge} />
-            </div>
-          )}
-          {currentTab === Tab.FINANCE && (
-            <div className="overflow-y-auto w-full h-full scrollbar-hide">
-              <FinanceTab transactions={transactions} setTransactions={setTransactions} />
-            </div>
-          )}
-          {currentTab === Tab.KNOWLEDGE && (
-            <div className="overflow-y-auto w-full h-full scrollbar-hide">
-              <KnowledgeTab knowledge={knowledge} setKnowledge={setUndoableKnowledge} />
-            </div>
-          )}
-          {currentTab === Tab.MONTHLY && (
-            <div className="overflow-hidden w-full h-full">
-              <MonthlyTab 
-                events={events} 
-                setEvents={setUndoableEvents} 
-                tasks={tasks}
-                setTasks={setUndoableTasks}
-              />
-            </div>
-          )}
-          {currentTab === Tab.WEEKLY && (
-            <div className="overflow-hidden w-full h-full">
-              <WeeklyTab 
-                events={events} 
-                setEvents={setUndoableEvents} 
+  const mobileNavItems = [
+    { id: Tab.PLANNING, icon: Home, label: 'Plan' },
+    { id: Tab.REFLECTION, icon: BarChart2, label: 'Review' },
+    { id: Tab.FINANCE, icon: TrendingUp, label: 'Finance' },
+    { id: Tab.WEEKLY, icon: Target, label: 'Week' },
+  ];
+
+  return (
+    <div className="flex h-screen bg-transparent overflow-hidden md:p-[10px] animate-fade-in relative">
+      <div className="flex flex-1 bg-black/5 md:rounded-[48px] overflow-hidden border-white/5 shadow-[0_0_40px_rgba(0,0,0,0.1)] relative">
+        {/* Desktop Sidebar */}
+        <div className="hidden lg:block">
+          <Sidebar currentTab={currentTab} setCurrentTab={setCurrentTab} onGoogleSync={syncGoogle} isSynced={isGoogleSynced} />
+        </div>
+
+        <main className="flex-1 flex flex-col min-w-0 p-4 md:p-10 overflow-hidden pb-20 md:pb-10">
+          <div className="flex-1 overflow-y-auto scrollbar-hide">
+            {currentTab === Tab.PLANNING && (
+              <PlanningTab 
                 tasks={tasks} 
                 setTasks={setUndoableTasks} 
-              />
-            </div>
-          )}
-          {currentTab === Tab.FOCUS && (
-            <div className="overflow-hidden w-full h-full">
-              <FocusTab 
+                events={events}
+                setEvents={setUndoableEvents}
+                routine={routine}
+                setRoutine={setUndoableRoutine}
+                analysis={analysis}
+                knowledge={[]}
                 totalFocusMinutes={totalFocusMinutes}
-                setTotalFocusMinutes={setTotalFocusMinutes}
               />
-            </div>
-          )}
+            )}
+            {currentTab === Tab.REFLECTION && (
+              <div className="max-w-4xl mx-auto w-full">
+                <ReflectionTab tasks={tasks} setTasks={setUndoableTasks} analysis={analysis} setAnalysis={setAnalysis} knowledge={[]} />
+              </div>
+            )}
+            {currentTab === Tab.FINANCE && (
+              <div className="w-full">
+                <FinanceTab transactions={transactions} setTransactions={setTransactions} />
+              </div>
+            )}
+            {currentTab === Tab.MONTHLY && (
+              <div className="w-full h-full">
+                <MonthlyTab 
+                  events={events} 
+                  setEvents={setUndoableEvents} 
+                  tasks={tasks}
+                  setTasks={setUndoableTasks}
+                />
+              </div>
+            )}
+            {currentTab === Tab.WEEKLY && (
+              <div className="w-full h-full">
+                <WeeklyTab 
+                  events={events} 
+                  setEvents={setUndoableEvents} 
+                  tasks={tasks} 
+                  setTasks={setUndoableTasks} 
+                />
+              </div>
+            )}
+            {currentTab === Tab.FOCUS && (
+              <div className="w-full h-full">
+                <FocusTab 
+                  totalFocusMinutes={totalFocusMinutes}
+                  setTotalFocusMinutes={setTotalFocusMinutes}
+                />
+              </div>
+            )}
+          </div>
         </main>
 
-        <CalendarRail tasks={tasks} setTasks={setUndoableTasks} events={events} setEvents={setUndoableEvents} />
+        {/* Desktop Timeline Rail */}
+        <div className="hidden xl:block">
+          <CalendarRail tasks={tasks} setTasks={setUndoableTasks} events={events} setEvents={setUndoableEvents} />
+        </div>
+
+        {/* Mobile Timeline Toggle Overlay */}
+        {isTimelineOpen && (
+          <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-xl animate-fade-in flex flex-col xl:hidden">
+            <div className="flex justify-between items-center p-6 border-b border-white/10">
+               <h3 className="font-bodoni font-bold text-xl">Timeline</h3>
+               <button onClick={() => setIsTimelineOpen(false)} className="glass-card p-2 rounded-full">
+                 <Clock className="rotate-45" size={24} />
+               </button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+               <CalendarRail tasks={tasks} setTasks={setUndoableTasks} events={events} setEvents={setUndoableEvents} isMobile />
+            </div>
+          </div>
+        )}
+
+        {/* Floating Timeline Button for Mobile */}
+        <button 
+          onClick={() => setIsTimelineOpen(true)}
+          className="xl:hidden fixed bottom-24 right-6 w-14 h-14 bg-white text-[#c0373f] rounded-full shadow-2xl flex items-center justify-center z-[50] animate-bounce"
+        >
+          <Clock size={28} />
+        </button>
+
+        {/* Mobile Bottom Navigation */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-20 glass-card-dark border-t border-white/10 flex items-center justify-around px-4 z-[90] pb-env(safe-area-inset-bottom)">
+          {mobileNavItems.map((item) => (
+            <button 
+              key={item.id}
+              onClick={() => setCurrentTab(item.id)}
+              className={`flex flex-col items-center gap-1 transition-all ${currentTab === item.id ? 'text-white' : 'text-white/40'}`}
+            >
+              <item.icon size={22} className={currentTab === item.id ? 'scale-110' : ''} />
+              <span className="text-[10px] font-bold uppercase tracking-widest">{item.label}</span>
+            </button>
+          ))}
+          {/* More button for mobile to access extra tabs */}
+          <button 
+            onClick={() => setCurrentTab(currentTab === Tab.MONTHLY ? Tab.PLANNING : Tab.MONTHLY)}
+            className={`flex flex-col items-center gap-1 transition-all ${[Tab.MONTHLY, Tab.FOCUS].includes(currentTab) ? 'text-white' : 'text-white/40'}`}
+          >
+            <Calendar size={22} />
+            <span className="text-[10px] font-bold uppercase tracking-widest">More</span>
+          </button>
+        </nav>
       </div>
     </div>
   );

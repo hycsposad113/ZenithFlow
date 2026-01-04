@@ -34,6 +34,7 @@ export interface Task {
   location?: string;
   subTasks?: SubTask[];
   origin?: 'daily' | 'planning'; // 'daily' from notes/timeline, 'planning' from weekly/monthly
+  googleEventId?: string; // ID from Google Calendar
 }
 
 export enum Currency {
@@ -73,6 +74,7 @@ export interface CalendarEvent {
   durationMinutes: number;
   type: EventType;
   notes?: string;
+  googleEventId?: string; // ID from Google Calendar
 }
 
 export interface AiInsight {

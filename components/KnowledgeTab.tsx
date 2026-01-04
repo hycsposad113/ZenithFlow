@@ -27,6 +27,12 @@ export const KnowledgeTab: React.FC<KnowledgeTabProps> = ({ knowledge, setKnowle
     setContent('');
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      addKnowledge();
+    }
+  };
+
   const removeKnowledge = (id: string) => {
     setKnowledge(prev => prev.filter(k => k.id !== id));
   };
@@ -59,6 +65,7 @@ export const KnowledgeTab: React.FC<KnowledgeTabProps> = ({ knowledge, setKnowle
                   placeholder="Essentialism..."
                   value={bookTitle}
                   onChange={e => setBookTitle(e.target.value)}
+                  onKeyDown={handleKeyDown}
                 />
               </div>
               
@@ -84,6 +91,7 @@ export const KnowledgeTab: React.FC<KnowledgeTabProps> = ({ knowledge, setKnowle
                   placeholder="The power of 'no' to the trivial many..."
                   value={content}
                   onChange={e => setContent(e.target.value)}
+                  onKeyDown={handleKeyDown}
                 />
               </div>
 
