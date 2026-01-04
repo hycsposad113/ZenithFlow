@@ -3,7 +3,19 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { ZENITH_SYSTEM_INSTRUCTION } from "../constants";
 import { Task, Transaction, KnowledgeItem } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize lazily to prevent crash if key is missing on load
+let ai: GoogleGenAI | null = null;
+const getAI = () => {
+  if (!ai) {
+    // Fallback to empty string to prevent constructor error, but warn
+    const apiKey = process.env.API_KEY || "";
+    if (!apiKey) {
+      console.warn("⚠️ ZenithFlow: No Gemini API Key found. AI features will not work.");
+    }
+    ai = new GoogleGenAI({ apiKey });
+  }
+  return ai;
+};
 
 const planResponseSchema = {
   type: Type.OBJECT,
@@ -38,16 +50,17 @@ const reflectionResponseSchema = {
   required: ["insight", "bookReference", "concept", "actionItem"]
 };
 
+// Define the response schema for crypto psychology analysis
 const cryptoPsychologyResponseSchema = {
   type: Type.OBJECT,
   properties: {
-    psychAnalysis: { type: Type.STRING },
-    mentalModel: { type: Type.STRING }
+    psychAnalysis: { type: Type.STRING, description: "A psychological analysis of the trade based on performance principles." },
+    mentalModel: { type: Type.STRING, description: "A suggested mental model or representation for improvement." }
   },
   required: ["psychAnalysis", "mentalModel"]
 };
 
-// 全域財務分析 Schema
+// Global Finance Analysis Schema
 const financeAnalysisResponseSchema = {
   type: Type.OBJECT,
   properties: {
@@ -62,8 +75,14 @@ const financeAnalysisResponseSchema = {
 };
 
 export const generateMorningPlan = async (currentTasks: Task[], knowledgeBase: KnowledgeItem[] = []) => {
+  const knowledgeContext = knowledgeBase.length > 0
+    ? `Reference these specific mental models from Jack's personal library: ${knowledgeBase.map(k => `[${k.bookTitle}: ${k.content}]`).join(', ')}`
+    : "";
+
   const prompt = `
     Jack's current tasks from timetable: ${JSON.stringify(currentTasks)}.
+    ${knowledgeContext}
+    
     Please organize the day. Rules:
     1. Identify existing Lectures/Study.
     2. Insert "English Speaking" (30m) and "AI Practice" (45m).
@@ -71,7 +90,7 @@ export const generateMorningPlan = async (currentTasks: Task[], knowledgeBase: K
     4. Mark only 1-2 essential items.
   `;
 
-  const response = await ai.models.generateContent({
+  const response = await getAI().models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: prompt,
     config: {
@@ -85,18 +104,24 @@ export const generateMorningPlan = async (currentTasks: Task[], knowledgeBase: K
 };
 
 export const analyzeDailyReflection = async (tasks: Task[], knowledgeBase: KnowledgeItem[] = []) => {
+  const knowledgeContext = knowledgeBase.length > 0
+    ? `Apply these specific principles from Jack's personal library: ${knowledgeBase.map(k => `[${k.bookTitle}: ${k.content}]`).join(', ')}`
+    : "";
+
   const prompt = `
     Analyze Jack's day:
     ${JSON.stringify(tasks.map(t => ({
-      title: t.title,
-      planned: t.durationMinutes,
-      actual: t.actualDurationMinutes || 0,
-      reflection: t.reflection || ""
-    })))}
-    Quote specific principles from books where relevant.
+    title: t.title,
+    planned: t.durationMinutes,
+    actual: t.actualDurationMinutes || 0,
+    reflection: t.reflection || ""
+  })))}
+    ${knowledgeContext}
+
+    Quote the specific knowledge items Jack has provided if relevant.
   `;
 
-  const response = await ai.models.generateContent({
+  const response = await getAI().models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: prompt,
     config: {
@@ -109,14 +134,22 @@ export const analyzeDailyReflection = async (tasks: Task[], knowledgeBase: Knowl
   return JSON.parse(response.text || "{}");
 };
 
+/**
+ * Analyzes crypto trading psychology and suggests mental models for improvement.
+ * Based on the principles of "Peak" (deliberate practice) and "Deep Work".
+ */
 export const analyzeCryptoPsychology = async (transaction: Transaction, winRate: number) => {
   const prompt = `
-    Analyze this crypto transaction: ${JSON.stringify(transaction)}
-    Current win rate: ${(winRate * 100).toFixed(1)}%
-    Based on "Peak", analyze performance and mindset. Suggest a mental model.
+    Analyze this crypto transaction:
+    ${JSON.stringify(transaction)}
+    Current overall win rate: ${(winRate * 100).toFixed(1)}%
+
+    Based on the principles of "Peak" (deliberate practice), analyze Jack's performance and mindset.
+    Examine the notes for emotional triggers or cognitive biases.
+    Suggest a "mental representation" (mental model) to improve or sustain high performance in trading.
   `;
 
-  const response = await ai.models.generateContent({
+  const response = await getAI().models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: prompt,
     config: {
@@ -130,7 +163,7 @@ export const analyzeCryptoPsychology = async (transaction: Transaction, winRate:
 };
 
 /**
- * 深度分析 Jack 的全域財務狀況
+ * Analyzes Jack's total financial status
  */
 export const analyzeTotalFinancialStatus = async (transactions: Transaction[]) => {
   const prompt = `
@@ -145,7 +178,7 @@ export const analyzeTotalFinancialStatus = async (transactions: Transaction[]) =
     4. Provide a unified status and a specific actionable step.
   `;
 
-  const response = await ai.models.generateContent({
+  const response = await getAI().models.generateContent({
     model: 'gemini-3-pro-preview',
     contents: prompt,
     config: {
