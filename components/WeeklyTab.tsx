@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { CalendarEvent, EventType, Task, TaskType, TaskStatus } from '../types';
-import { ChevronLeft, ChevronRight, Plus, X, Clock, Brain, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Clock, Brain, Sparkles, ChevronRight as ArrowIcon } from 'lucide-react';
 import { Button } from './Button';
 import { synthesizePeriodPerformance } from '../services/geminiService';
 
@@ -11,10 +11,13 @@ interface WeeklyTabProps {
   tasks: Task[];
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   dailyAnalyses: Record<string, any>;
+  weeklyAnalyses?: Record<string, any>;
   onWeeklySynthesis?: (weekStart: string, result: any) => void;
 }
 
-export const WeeklyTab: React.FC<WeeklyTabProps> = ({ events, setEvents, tasks, setTasks, dailyAnalyses, onWeeklySynthesis }) => {
+export const WeeklyTab: React.FC<WeeklyTabProps> = ({ 
+  events, setEvents, tasks, setTasks, dailyAnalyses, weeklyAnalyses = {}, onWeeklySynthesis 
+}) => {
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     const d = new Date();
     const day = d.getDay();
@@ -58,13 +61,16 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({ events, setEvents, tasks, 
     return `${year}-${month}-${day}`;
   };
 
+  const currentWeekKey = useMemo(() => formatDateISO(currentWeekStart), [currentWeekStart]);
+  const currentWeeklySummary = useMemo(() => weeklyAnalyses[currentWeekKey] || null, [weeklyAnalyses, currentWeekKey]);
+
   const handleSynthesizeWeek = async () => {
     if (weekInsights.length === 0) return;
     setLoadingSynthesis(true);
     try {
       const result = await synthesizePeriodPerformance(weekInsights, 'Week');
       if (onWeeklySynthesis) {
-        onWeeklySynthesis(formatDateISO(currentWeekStart), result);
+        onWeeklySynthesis(currentWeekKey, result);
       }
     } catch (e) {
       console.error(e);
@@ -154,7 +160,7 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({ events, setEvents, tasks, 
         })}
       </div>
 
-      {/* Daily Review Section (formerly Daily Insights History) */}
+      {/* Daily Review Section */}
       <section className="mt-10 border-t border-white/10 pt-10">
         <div className="flex justify-between items-center mb-8">
            <h3 className="text-xl font-bodoni font-bold text-white flex items-center gap-2">
@@ -165,22 +171,69 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({ events, setEvents, tasks, 
            </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {weekInsights.length > 0 ? weekInsights.map((item, idx) => (
-            <div key={idx} className="glass-card p-5 rounded-2xl border border-white/5 flex flex-col h-full">
-               <div className="flex justify-between items-center mb-3">
-                 <span className="text-[10px] font-mono text-white/40">{item.date}</span>
-                 <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">{item.insight.bookReference}</span>
-               </div>
-               <p className="text-[13px] italic text-white/80 flex-1 leading-relaxed">"{item.insight.insight}"</p>
-               <div className="mt-4 pt-4 border-t border-white/5">
-                 <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-1">Concept</p>
-                 <p className="text-[12px] font-medium text-white/70">{item.insight.concept}</p>
-               </div>
-            </div>
-          )) : (
-            <div className="col-span-full py-20 text-center border border-dashed border-white/5 rounded-2xl text-white/20 text-xs italic">No daily intelligence recorded for this week.</div>
-          )}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+          {/* Daily Insight Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {weekInsights.length > 0 ? weekInsights.map((item, idx) => (
+              <div key={idx} className="glass-card p-5 rounded-2xl border border-white/5 flex flex-col h-full animate-fade-in">
+                 <div className="flex justify-between items-center mb-3">
+                   <span className="text-[10px] font-mono text-white/40">{item.date}</span>
+                   <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">{item.insight.bookReference}</span>
+                 </div>
+                 <p className="text-[12px] italic text-white/80 flex-1 leading-relaxed">"{item.insight.insight}"</p>
+                 <div className="mt-4 pt-4 border-t border-white/5">
+                   <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mb-1">Concept</p>
+                   <p className="text-[11px] font-medium text-white/70">{item.insight.concept}</p>
+                 </div>
+              </div>
+            )) : (
+              <div className="col-span-full py-20 text-center border border-dashed border-white/5 rounded-2xl text-white/20 text-xs italic">No daily intelligence recorded for this week.</div>
+            )}
+          </div>
+
+          {/* Weekly Synthesis Result Display (The "Red Box" fix) */}
+          <div className="h-full">
+            {currentWeeklySummary ? (
+              <div className="glass-card-dark p-8 rounded-[40px] border border-white/20 shadow-2xl animate-fade-in space-y-8 flex flex-col min-h-[400px]">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={16} className="text-white/60" />
+                    <h4 className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em]">Weekly Strategy</h4>
+                  </div>
+                  <p className="text-[16px] font-bodoni italic text-white/90 leading-relaxed font-light">"{currentWeeklySummary.summary}"</p>
+                </div>
+
+                <div className="bg-white/5 p-6 rounded-3xl border border-white/10">
+                   <p className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em] mb-3">Core Pivot</p>
+                   <div className="flex items-start gap-4">
+                      <div className="bg-white/10 p-2 rounded-xl"><ArrowIcon size={16} className="text-white" /></div>
+                      <p className="text-[15px] font-bodoni font-bold text-white leading-tight">{currentWeeklySummary.improvement}</p>
+                   </div>
+                </div>
+
+                <div className="flex-1 space-y-4">
+                   <p className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em]">Identified Patterns</p>
+                   <div className="flex flex-wrap gap-2">
+                      {currentWeeklySummary.patterns?.map((p: string, i: number) => (
+                        <span key={i} className="px-3 py-1.5 bg-white/10 rounded-xl text-[10px] text-white/70 border border-white/5 font-medium">{p}</span>
+                      ))}
+                   </div>
+                </div>
+
+                <div className="pt-6 border-t border-white/10">
+                   <p className="text-[9px] font-bold text-white/30 uppercase tracking-[0.2em] mb-2">Next Step</p>
+                   <p className="text-[13px] text-white/60 italic leading-relaxed">{currentWeeklySummary.suggestions}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="h-[400px] flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-[40px] bg-white/5 text-white/10 px-10 text-center group">
+                 <Sparkles size={48} className="mb-6 opacity-5 group-hover:opacity-20 transition-opacity" />
+                 <p className="text-sm italic font-bodoni font-light max-w-xs leading-relaxed text-white/30">
+                   Generate a strategic summary for this week to see high-level intelligence here.
+                 </p>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
