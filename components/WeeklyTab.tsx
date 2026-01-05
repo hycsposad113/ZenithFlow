@@ -143,16 +143,30 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({
           <p className="text-white/60 text-sm font-medium italic">Focus on high-level sprint goals.</p>
         </div>
         <div className="flex gap-2">
+          {/* Previous Week */}
           <Button variant="secondary" onClick={() => {
             const d = new Date(currentWeekStart); d.setDate(d.getDate() - 7); setCurrentWeekStart(d);
-          }} className="rounded-full w-10 h-10 p-0"><ChevronLeft size={18} /></Button>
+          }} className="rounded-full w-10 h-10 p-0 flex items-center justify-center">
+            <ChevronLeft size={18} className="text-white" />
+          </Button>
+
+          {/* Today Button */}
           <Button variant="secondary" onClick={() => {
-            const d = new Date(); const day = d.getDay(); const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-            const start = new Date(d.setDate(diff)); start.setHours(0, 0, 0, 0); setCurrentWeekStart(start);
-          }}>Today</Button>
+            const d = new Date();
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            d.setDate(diff); d.setHours(0, 0, 0, 0);
+            setCurrentWeekStart(d);
+          }} className="px-6 rounded-full text-[10px] font-bold">
+            TODAY
+          </Button>
+
+          {/* Next Week */}
           <Button variant="secondary" onClick={() => {
             const d = new Date(currentWeekStart); d.setDate(d.getDate() + 7); setCurrentWeekStart(d);
-          }} className="rounded-full w-10 h-10 p-0"><ChevronRight size={18} /></Button>
+          }} className="rounded-full w-10 h-10 p-0 flex items-center justify-center">
+            <ChevronRight size={18} className="text-white" />
+          </Button>
         </div>
       </header>
 
