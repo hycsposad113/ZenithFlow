@@ -75,8 +75,8 @@ const App: React.FC = () => {
     if (user?.toLowerCase() === validUser.toLowerCase() && pass === validPass) {
       setIsAuthenticated(true);
       localStorage.setItem('zenithflow_auth', 'true');
-      // Trigger sync immediately on login
-      setTimeout(() => syncGoogle(false).catch(console.error), 100);
+      // Trigger sync synchronously to avoid mobile popup blockers
+      syncGoogle(false).catch(console.error);
       return true;
     }
     return false;
@@ -86,35 +86,32 @@ const App: React.FC = () => {
 
   // --- Initialization & Google Sync ---
 
-  // Unify Google initialization and session restoration
+  // Pre-initialize Google API on mount
+  useEffect(() => {
+    initGoogleAuth().catch(console.warn);
+  }, []);
+
+  // Session restoration
   useEffect(() => {
     if (!isAuthenticated) {
       setIsRestoring(false);
       return;
     }
 
-    const initializeAndSync = async () => {
-      const safetyTimeout = setTimeout(() => {
-        setIsRestoring(false);
-      }, 15000);
-
-      try {
-        await initGoogleAuth();
-        const wasSynced = localStorage.getItem('is_google_synced') === 'true';
-        if (wasSynced) {
-          console.log("ZenithFlow: Attempting auto-sync...");
+    const restoreSession = async () => {
+      const wasSynced = localStorage.getItem('is_google_synced') === 'true';
+      if (wasSynced) {
+        console.log("ZenithFlow: Attempting auto-restore...");
+        try {
           await syncGoogle(true);
+        } catch (e) {
+          console.warn("Restoration skipped or failed", e);
         }
-      } catch (e) {
-        console.warn("ZenithFlow: Init/Restore failed", e);
-        setIsGoogleSynced(false);
-      } finally {
-        clearTimeout(safetyTimeout);
-        setIsRestoring(false);
       }
+      setIsRestoring(false);
     };
 
-    initializeAndSync();
+    restoreSession();
   }, [isAuthenticated]);
 
   const syncGoogle = async (silent = false) => {
