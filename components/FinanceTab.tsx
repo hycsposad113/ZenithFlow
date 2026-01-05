@@ -74,10 +74,8 @@ export const FinanceTab: React.FC<FinanceTabProps> = ({ transactions, setTransac
 
   const handleDeleteTransaction = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm("Delete this entry?")) {
-      setTransactions(prev => prev.filter(t => t.id !== id));
-      if (editingTx?.id === id) handleCancelEdit();
-    }
+    setTransactions(prev => prev.filter(t => t.id !== id));
+    if (editingTx?.id === id) handleCancelEdit();
   };
 
   const handleEditClick = (tx: Transaction) => {
