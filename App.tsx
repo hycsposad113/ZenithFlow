@@ -9,7 +9,7 @@ import { FocusTab } from './components/FocusTab';
 import { Sidebar } from './components/Sidebar';
 import { CalendarRail } from './components/CalendarRail';
 import { Login } from './components/Login';
-import { Task, Transaction, CalendarEvent, DailyStats } from './types';
+import { Task, Transaction, CalendarEvent, DailyStats, TaskType, TaskStatus, EventType } from './types';
 import { Home, BarChart2, TrendingUp, Calendar, Target, Timer, Clock } from 'lucide-react';
 import { initGoogleAuth, signIn, fetchGoogleEvents, syncDailyStatsToSheet, saveAppStateToSheet, loadAppStateFromSheet } from './services/googleCalendarService';
 
@@ -135,7 +135,43 @@ const App: React.FC = () => {
       }
 
       const googleEvents = await fetchGoogleEvents();
-      setEvents(googleEvents); // Replace tasks with fresh calendar data
+      setEvents(googleEvents);
+
+      // Auto-convert Google Events for TODAY to Tasks so they appear in Review
+      // We only convert if they don't already exist in tasks
+      const todayStr = new Date().toISOString().split('T')[0];
+      setTasks(currentTasks => {
+        const newTasks = [...currentTasks];
+        let added = false;
+
+        googleEvents.forEach(evt => {
+          if (evt.date === todayStr) {
+            // Check if this event is already a task
+            const exists = newTasks.some(t => t.googleEventId === evt.id);
+            if (!exists) {
+              // Create a new task for this event
+              // Map EventType to TaskType?
+              let tType = TaskType.OTHER;
+              if (evt.type === EventType.WORK) tType = TaskType.LECTURE; // Default work to Lecture/Work?
+
+              newTasks.push({
+                id: evt.id, // Use Google ID as Task ID or similar
+                title: evt.title,
+                type: tType,
+                durationMinutes: evt.durationMinutes,
+                date: evt.date,
+                status: TaskStatus.COMPLETED, // Assume past events are done? Or planned?
+                isEssential: false,
+                googleEventId: evt.id,
+                scheduledTime: evt.startTime
+              });
+              added = true;
+            }
+          }
+        });
+
+        return added ? newTasks : currentTasks;
+      });
 
       setIsGoogleSynced(true);
       localStorage.setItem('is_google_synced', 'true'); // Persist persistence
