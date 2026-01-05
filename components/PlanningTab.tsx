@@ -52,7 +52,7 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
 
   const combinedTodaySchedule = useMemo(() => {
     const todayTasks = tasks.filter(t => t.date === todayStr);
-    const todayEvents = events.filter(e => e.date === todayStr);
+    const todayEvents = events.filter(e => e.date === todayStr && !todayTasks.some(t => t.googleEventId === e.id));
 
     const mappedTasks = todayTasks.map(t => ({ ...t, isEvent: false }));
     const mappedEvents = todayEvents.map(e => ({
