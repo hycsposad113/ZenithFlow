@@ -127,7 +127,6 @@ const App: React.FC = () => {
 
       const cloudState = await loadAppStateFromSheet();
       if (cloudState) {
-        if (!silent) console.log("Synced from Cloud:", cloudState);
         if (cloudState.tasks) setTasks(cloudState.tasks);
         if (cloudState.transactions) setTransactions(cloudState.transactions);
         if (cloudState.routine) setRoutine(cloudState.routine);
