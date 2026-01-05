@@ -375,6 +375,75 @@ const appendRowToSheet = async (spreadsheetId: string, range: string, values: an
 // --- App State Sync (The "Cloud Save" Logic) ---
 
 const STATE_SHEET_NAME = "AppState";
+const TRANSACTIONS_SHEET_NAME = "Transactions";
+
+const syncTransactions = async (spreadsheetId: string, transactions: any[]) => {
+  try {
+    // Check if sheet exists
+    // @ts-ignore
+    const sheetMeta = await gapi.client.sheets.spreadsheets.get({ spreadsheetId });
+    const sheetExists = sheetMeta.result.sheets.some((s: any) => s.properties.title === TRANSACTIONS_SHEET_NAME);
+
+    if (!sheetExists) {
+      // Create Sheet with Header
+      // @ts-ignore
+      await gapi.client.sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        resource: {
+          requests: [{
+            addSheet: {
+              properties: {
+                title: TRANSACTIONS_SHEET_NAME,
+                gridProperties: { frozenRowCount: 1 }
+              }
+            }
+          }]
+        }
+      });
+
+      // Write Headers
+      // @ts-ignore
+      await gapi.client.sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${TRANSACTIONS_SHEET_NAME}!A1`,
+        valueInputOption: 'USER_ENTERED',
+        resource: { values: [['Date', 'Type', 'Category', 'Amount (EUR)', 'Notes', 'ID']] }
+      });
+    }
+
+    // Format Data
+    const rows = transactions.map((t: any) => [
+      t.date,
+      t.type,
+      t.category,
+      t.amount,
+      t.notes || '',
+      t.id
+    ]);
+
+    // Clear old data (A2:F) to handle deletions
+    // @ts-ignore
+    await gapi.client.sheets.spreadsheets.values.clear({
+      spreadsheetId,
+      range: `${TRANSACTIONS_SHEET_NAME}!A2:F`
+    });
+
+    if (rows.length > 0) {
+      // Write new data
+      // @ts-ignore
+      await gapi.client.sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${TRANSACTIONS_SHEET_NAME}!A2`,
+        valueInputOption: 'USER_ENTERED',
+        resource: { values: rows }
+      });
+    }
+    console.log("Transactions synced to readable sheet.");
+  } catch (e) {
+    console.warn("Failed to sync readable transactions:", e);
+    // Suppress error so main sync doesn't fail
+  }
+};
 
 /**
  * Saves the entire application state (tasks, routine, etc.) to a specific sheet.
@@ -418,13 +487,21 @@ export const saveAppStateToSheet = async (state: any) => {
       resource: { values: [[jsonState]] }
     });
 
+    // 3. Sync Readable Transactions
+    if (state.transactions && Array.isArray(state.transactions)) {
+      await syncTransactions(spreadsheetId, state.transactions);
+    }
+
     console.log("App state saved to cloud!");
   } catch (e) {
     console.error("Error saving app state:", e);
     // DEBUG: Alert user to debug drive issue
     // @ts-ignore
     const msg = e.result?.error?.message || e.message || JSON.stringify(e);
-    alert("GOOGLE SYNC ERROR: " + msg + "\nPlease check console and ensure you have re-logged in.");
+    // Only alert if it's NOT just a transaction sync warning (which is logged internally)
+    // Actually, let's keep it robust.
+    // We remove the ALERT now because the user confirmed file exists, just missing data.
+    console.error("GOOGLE SYNC ERROR DETAILS:", msg);
   }
 };
 
