@@ -160,7 +160,7 @@ const App: React.FC = () => {
                 type: tType,
                 durationMinutes: evt.durationMinutes,
                 date: evt.date,
-                status: TaskStatus.COMPLETED, // Assume past events are done? Or planned?
+                status: TaskStatus.PLANNED,
                 isEssential: false,
                 googleEventId: evt.id,
                 scheduledTime: evt.startTime
