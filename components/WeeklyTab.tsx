@@ -290,7 +290,7 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({
               <select
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm font-bold text-white outline-none appearance-none"
                 value={formData.type}
-                onChange={e => setFormData({ ...formData, type: e.target.value })}
+                onChange={e => setFormData({ ...formData, type: e.target.value as TaskType })}
               >
                 <option value={TaskType.GOAL} className="bg-[#1a1a1a]">Goal</option>
                 <option value={TaskType.EVENT} className="bg-[#1a1a1a]">Event</option>
