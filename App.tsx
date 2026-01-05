@@ -75,6 +75,8 @@ const App: React.FC = () => {
     if (user?.toLowerCase() === validUser.toLowerCase() && pass === validPass) {
       setIsAuthenticated(true);
       localStorage.setItem('zenithflow_auth', 'true');
+      // Trigger sync immediately on login
+      setTimeout(() => syncGoogle(false).catch(console.error), 100);
       return true;
     }
     return false;

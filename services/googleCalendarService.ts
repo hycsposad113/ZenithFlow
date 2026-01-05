@@ -95,14 +95,21 @@ export const signIn = () => {
   return new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {
       console.warn("ZenithFlow: Sign-in timed out");
-      reject(new Error("Sign-in timeout"));
-    }, 10000); // 10s safety timeout
+      // Don't reject for silent attempts, just resolve so app proceeds
+      resolve();
+    }, 8000); // Slightly shorter timeout for perceived speed
 
     tokenClient.callback = async (resp: any) => {
       clearTimeout(timeout);
       if (resp.error !== undefined) {
-        console.error("Google Auth Callback Error:", resp);
-        reject(resp);
+        console.warn("Google Auth Callback Error (Silent/Normal):", resp.error);
+        if (resp.error === 'immediate_failed') {
+          // 'immediate_failed' usually means prompt: 'none' failed. 
+          // Resolve without token so app starts normally.
+          resolve();
+        } else {
+          reject(resp);
+        }
         return;
       }
       resolve();
@@ -111,11 +118,12 @@ export const signIn = () => {
     // 如果已經有 token 就不用重複跳視窗，除非失效
     // @ts-ignore
     const token = gapi.client.getToken();
-    if (token) {
+    if (token && token.access_token) {
       clearTimeout(timeout);
       resolve();
     } else {
-      // Use prompt: 'none' for silent sync on refresh
+      // Use prompt: 'none' for silent sync on refresh. 
+      // If it fails, 'immediate_failed' will be caught in callback.
       tokenClient.requestAccessToken({ prompt: 'none' });
     }
   });
