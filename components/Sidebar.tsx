@@ -26,7 +26,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onG
   return (
     <div className="w-64 bg-black/10 backdrop-blur-md border-r border-white/10 h-full flex flex-col p-6 shrink-0 overflow-y-auto">
       <div className="flex items-center gap-3 mb-10 px-2">
-        <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center text-white font-bold text-xl font-bodoni border border-white/30 shadow-lg">Z</div>
+        <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center border border-white/30 shadow-lg">
+          <img src="/ZenithFlow/favicon.png" alt="Z" className="w-full h-full object-cover" />
+        </div>
         <span className="font-bodoni text-white text-2xl tracking-tight floating-title">ZenithFlow</span>
       </div>
 
