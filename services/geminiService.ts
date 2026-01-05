@@ -78,11 +78,13 @@ const periodSynthesisSchema = {
 export const generateDailyRitual = async (currentTasks: Task[], events: CalendarEvent[], knowledgeBase: KnowledgeItem[] = []) => {
   const prompt = `
     Jack's Daily Schedule Template (STRICTLY FOLLOW THIS):
-    - **Morning**: Wake up -> AI Video/Design/English (Fill empty slots around fixed events).
-    - **Lunch**: 12:30 - 13:30 (Fixed break).
-    - **Afternoon**: Classes (Fixed) OR Self Study (if free).
-    - **Dinner/Rest**: 17:00 - 19:30 (Fixed break).
-    - **Night**: 19:30 - 22:10 (Study/Deep Work).
+    - **Early Morning (Focus)**: 06:00 - 08:00 -> STRICTLY "AI Practice" and "English Speaking".
+    - **Commute**: 08:00 - 08:45 -> LEAVE BLANK (Do not schedule anything).
+    - **Morning Classes**: 08:45 - 12:30 -> Fixed events (Do not overlap).
+    - **Lunch**: 12:30 - 13:30 -> LEAVE BLANK.
+    - **Afternoon**: 13:30 - 17:30 -> Classes (Fixed) OR Self Study (if free).
+    - **Dinner/Rest**: 17:30 - 19:30 -> LEAVE BLANK.
+    - **Night**: 19:30 - 22:10 -> Self Study / Deep Work.
     - **Wind Down (MANDATORY)**:
       - 22:10 - 22:30: Daily Review.
       - 22:30 - 23:00: Reading.
@@ -95,8 +97,8 @@ export const generateDailyRitual = async (currentTasks: Task[], events: Calendar
     Directives:
     1. **Fill Gaps**: Only suggest *NEW* tasks for empty slots based on the template above.
     2. **Conflict Free**: Do NOT overlap with Fixed Calendar Events.
-    3. **Mandatory Items**: Ensure "Daily Review" (22:10) and "Reading" (22:30) are present if not already there.
-    4. **Standard Items**: If morning is free, add "English Speaking" (30m) or "AI Practice" (45m).
+    3. **Crucial**: If 06:00 - 08:00 is empty, you MUST schedule "AI Practice" and "English Speaking" there.
+    4. **Mandatory Items**: Ensure "Daily Review" (22:10) and "Reading" (22:30) are present if not already there.
     5. **Output**: Only return the NEW tasks to be added.
   `;
 

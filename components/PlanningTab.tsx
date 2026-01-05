@@ -177,7 +177,7 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
           ) : (
             <Zap size={14} className="fill-current" />
           )}
-          Morning Ritual
+          Daily Ritual
         </button>
       </div>
 
@@ -338,6 +338,23 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
                   }}
                 />
               </div>
+
+              {!editingId?.isEvent && (
+                <div>
+                  <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2 block">Category</label>
+                  <select
+                    className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm font-semibold text-white outline-none appearance-none"
+                    value={(editingItem as Task).type}
+                    onChange={(e) => {
+                      setTasks(prev => prev.map(t => t.id === editingId?.id ? { ...t, type: e.target.value as TaskType } : t));
+                    }}
+                  >
+                    {Object.values(TaskType).map(t => (
+                      <option key={t} value={t} className="bg-[#1a1a1a]">{t}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2 block">Start</label>
