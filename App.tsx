@@ -65,8 +65,39 @@ const App: React.FC = () => {
   const [dailyStats, setDailyStats] = useState<Record<string, DailyStats>>({});
   const [totalFocusMinutes, setTotalFocusMinutes] = useState(0);
 
+  // Focus Timer State (Lifted Up)
+  const [timeLeft, setTimeLeft] = useState(25 * 60);
+  const [isTimerActive, setIsTimerActive] = useState(false);
+  const [timerSessionCount, setTimerSessionCount] = useState(0);
+  const timerRef = useRef<any>(null);
+
   const historyRef = useRef<AppState[]>([]);
   const isUndoingRef = useRef(false);
+
+  // Timer Logic
+  useEffect(() => {
+    let interval: any = null;
+    if (isTimerActive && timeLeft > 0) {
+      interval = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 0) return 0;
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isTimerActive]);
+
+  useEffect(() => {
+    if (timeLeft === 0 && isTimerActive) {
+      setIsTimerActive(false);
+      updateFocusMinutes((prev: number) => prev + 25);
+      setTimerSessionCount((prev) => prev + 1);
+      setTimeLeft(25 * 60);
+    }
+  }, [timeLeft, isTimerActive]);
 
   const handleLogin = (user: string, pass: string) => {
     const validUser = import.meta.env.VITE_APP_USER;
@@ -472,6 +503,12 @@ const App: React.FC = () => {
                 <FocusTab
                   totalFocusMinutes={totalFocusMinutes}
                   setTotalFocusMinutes={updateFocusMinutes}
+                  timeLeft={timeLeft}
+                  setTimeLeft={setTimeLeft}
+                  isActive={isTimerActive}
+                  setIsActive={setIsTimerActive}
+                  sessionCount={timerSessionCount}
+                  setSessionCount={setTimerSessionCount}
                 />
               </div>
             )}
