@@ -127,9 +127,11 @@ const App: React.FC = () => {
       if (cloudState) {
         if (!silent) console.log("Synced from Cloud:", cloudState);
         if (cloudState.tasks) setTasks(cloudState.tasks);
+        if (cloudState.transactions) setTransactions(cloudState.transactions);
         if (cloudState.routine) setRoutine(cloudState.routine);
         if (cloudState.dailyStats) setDailyStats(cloudState.dailyStats);
         if (cloudState.dailyAnalyses) setDailyAnalyses(cloudState.dailyAnalyses);
+        if (cloudState.weeklyAnalyses) setWeeklyAnalyses(cloudState.weeklyAnalyses);
         if (!silent) {
           // Optional: toast or less intrusive notification
         }
@@ -191,15 +193,17 @@ const App: React.FC = () => {
     }
   }, [isAuthenticated]);
 
-  // Auto-save to cloud when tasks, routine, dailyStats, or dailyAnalyses change
+  // Auto-save to cloud when tasks, routine, dailyStats, dailyAnalyses, or transactions change
   useEffect(() => {
     if (isGoogleSynced) {
       const timeoutId = setTimeout(() => {
         const currentStateToSave = {
           tasks,
+          transactions,
           routine,
           dailyStats,
           dailyAnalyses,
+          weeklyAnalyses,
         };
         saveAppStateToSheet(currentStateToSave)
           .then(() => console.log("Auto-saved to cloud."))
@@ -208,7 +212,7 @@ const App: React.FC = () => {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [tasks, routine, dailyStats, dailyAnalyses, isGoogleSynced]);
+  }, [tasks, transactions, routine, dailyStats, dailyAnalyses, weeklyAnalyses, isGoogleSynced]);
 
   const saveToHistory = useCallback(() => {
     if (isUndoingRef.current) return;
