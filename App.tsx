@@ -383,6 +383,7 @@ const App: React.FC = () => {
                 routine={routine}
                 setRoutine={setUndoableRoutine}
                 analysis={analysis}
+                dailyAnalyses={dailyAnalyses}
                 knowledge={[]}
                 totalFocusMinutes={totalFocusMinutes}
               />

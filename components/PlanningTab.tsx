@@ -8,6 +8,8 @@ import {
   Zap, Trash2, CheckCircle2, Circle, X, Clock, Sunrise, Brain, Dumbbell
 } from 'lucide-react';
 
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+
 interface PlanningTabProps {
   tasks: Task[];
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
@@ -16,21 +18,29 @@ interface PlanningTabProps {
   routine: { wake: string; meditation: boolean; exercise: boolean };
   setRoutine: React.Dispatch<React.SetStateAction<{ wake: string; meditation: boolean; exercise: boolean }>>;
   analysis: { insight: string; bookReference: string; concept: string; actionItem: string } | null;
+  dailyAnalyses?: Record<string, { insight: string; bookReference: string; concept: string; actionItem: string }>;
   knowledge: KnowledgeItem[];
   totalFocusMinutes?: number;
 }
 
 export const PlanningTab: React.FC<PlanningTabProps> = ({
-  tasks, setTasks, events, setEvents, routine, setRoutine, analysis, knowledge, totalFocusMinutes = 0
+  tasks, setTasks, events, setEvents, routine, setRoutine, analysis, dailyAnalyses = {}, knowledge, totalFocusMinutes = 0
 }) => {
   const [loading, setLoading] = useState(false);
   const [mantra, setMantra] = useState("The ability to choose cannot be taken away—it can only be forgotten. Discern the vital few from the trivial many.");
   const [editingId, setEditingId] = useState<{ id: string, isEvent: boolean } | null>(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  const dateString = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
-  const weekday = today.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
+  const selectedDateStr = selectedDate.toISOString().split('T')[0];
+  const dateString = selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
+  const weekday = selectedDate.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
+
+  // Helper to change date
+  const changeDate = (days: number) => {
+    const newDate = new Date(selectedDate);
+    newDate.setDate(newDate.getDate() + days);
+    setSelectedDate(newDate);
+  };
 
   const calculateEndTime = (startTime: string, duration: number) => {
     if (!startTime) return '00:00';
@@ -52,8 +62,8 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
   };
 
   const combinedTodaySchedule = useMemo(() => {
-    const todayTasks = tasks.filter(t => t.date === todayStr);
-    const todayEvents = events.filter(e => e.date === todayStr && !todayTasks.some(t => t.googleEventId === e.id));
+    const todayTasks = tasks.filter(t => t.date === selectedDateStr);
+    const todayEvents = events.filter(e => e.date === selectedDateStr && !todayTasks.some(t => t.googleEventId === e.id));
 
     const mappedTasks = todayTasks.map(t => ({ ...t, isEvent: false }));
     const mappedEvents = todayEvents.map(e => ({
@@ -66,22 +76,29 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
     return [...mappedTasks, ...mappedEvents].sort((a, b) =>
       (a.scheduledTime || '').localeCompare(b.scheduledTime || '')
     );
-  }, [tasks, events, todayStr]);
+  }, [tasks, events, selectedDateStr]);
 
   const stats = useMemo(() => {
-    const todayTasks = tasks.filter(t => t.date === todayStr);
+    const todayTasks = tasks.filter(t => t.date === selectedDateStr);
     const total = todayTasks.length;
     const completed = todayTasks.filter(t => t.status === TaskStatus.COMPLETED).length;
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
     return { completed, inProgress: total - completed, percentage };
-  }, [tasks, todayStr]);
+  }, [tasks, selectedDateStr]);
+
+  // Insight Logic: Show "Yesterday's" review on "Today's" view.
+  // So if selectedDate is X, we want the analysis from X-1.
+  const prevDate = new Date(selectedDate);
+  prevDate.setDate(prevDate.getDate() - 1);
+  const prevDateStr = prevDate.toISOString().split('T')[0];
+  const displayAnalysis = dailyAnalyses[prevDateStr] || null;
 
   const handleMorningRitual = async () => {
     setLoading(true);
     try {
       const result = await generateDailyRitual(
-        tasks.filter(t => t.date === todayStr),
-        events.filter(e => e.date === todayStr),
+        tasks.filter(t => t.date === selectedDateStr),
+        events.filter(e => e.date === selectedDateStr),
         knowledge
       );
       const suggestedTasks: Task[] = (result.tasks || []).filter((t: any) => t != null).map((t: any, idx: number) => {
@@ -90,7 +107,7 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
         return {
           id: `gen-${Date.now()}-${idx}`,
           title,
-          date: todayStr,
+          date: selectedDateStr,
           type: titleLower.includes('english') ? TaskType.ENGLISH_SPEAKING :
             titleLower.includes('ai') ? TaskType.AI_PRACTICE :
               titleLower.includes('reading') ? TaskType.SELF_STUDY :
@@ -165,7 +182,11 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
       <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center glass-card p-6 rounded-3xl border border-white/20">
         <div className="flex flex-col">
           <span className="text-[10px] font-bold text-white/50 tracking-widest">{dateString}</span>
-          <h2 className="text-3xl font-bodoni font-bold text-white leading-none floating-title">{weekday}</h2>
+          <div className="flex items-center gap-4">
+            <button onClick={() => changeDate(-1)} className="p-1 hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+            <h2 className="text-3xl font-bodoni font-bold text-white leading-none floating-title w-[140px] text-center">{weekday}</h2>
+            <button onClick={() => changeDate(1)} className="p-1 hover:bg-white/10 rounded-full transition-colors"><ChevronRight size={24} /></button>
+          </div>
         </div>
         <button
           onClick={handleMorningRitual}
@@ -228,14 +249,14 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
       {/* Stats and Insight Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <div className="glass-card p-6 rounded-3xl border border-white/20 flex flex-col min-h-[160px]">
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">Daily Insight</p>
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">Daily Insight (Yesterday)</p>
           <div className="flex-1 flex flex-col justify-center">
-            {analysis ? (
+            {displayAnalysis ? (
               <div className="space-y-4">
-                <p className="text-[14px] font-medium text-white/90 leading-relaxed italic border-l-2 border-white/30 pl-3">"{analysis.insight}"</p>
+                <p className="text-[14px] font-medium text-white/90 leading-relaxed italic border-l-2 border-white/30 pl-3">"{displayAnalysis.insight}"</p>
               </div>
             ) : (
-              <p className="text-[12px] text-white/50 italic font-light">Insights will appear after review.</p>
+              <p className="text-[12px] text-white/50 italic font-light">Complete yesterday's review to see insights.</p>
             )}
           </div>
         </div>
