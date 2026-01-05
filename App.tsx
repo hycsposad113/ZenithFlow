@@ -11,7 +11,7 @@ import { CalendarRail } from './components/CalendarRail';
 import { Login } from './components/Login';
 import { Task, Transaction, CalendarEvent, DailyStats } from './types';
 import { Home, BarChart2, TrendingUp, Calendar, Target, Timer, Clock } from 'lucide-react';
-import { initGoogleAuth, signIn, fetchGoogleEvents, syncDailyStatsToSheet } from './services/googleCalendarService';
+import { initGoogleAuth, signIn, fetchGoogleEvents, syncDailyStatsToSheet, saveAppStateToSheet, loadAppStateFromSheet } from './services/googleCalendarService';
 
 enum Tab {
   PLANNING = 'planning',
@@ -79,7 +79,18 @@ const App: React.FC = () => {
 
   const syncGoogle = async () => {
     try {
+      await initGoogleAuth(); // Ensure auth is initialized before sign-in
       await signIn();
+      const cloudState = await loadAppStateFromSheet();
+      if (cloudState) {
+        console.log("Synced from Cloud:", cloudState);
+        if (cloudState.tasks) setTasks(cloudState.tasks);
+        if (cloudState.routine) setRoutine(cloudState.routine);
+        if (cloudState.dailyStats) setDailyStats(cloudState.dailyStats);
+        if (cloudState.dailyAnalyses) setDailyAnalyses(cloudState.dailyAnalyses);
+        alert("Synced from Cloud!");
+      }
+
       const googleEvents = await fetchGoogleEvents();
       setEvents(prev => {
         const filtered = prev.filter(e => !e.googleEventId);
@@ -88,6 +99,7 @@ const App: React.FC = () => {
       setIsGoogleSynced(true);
     } catch (e) {
       console.error("Google Sync Failed", e);
+      alert("Failed to sync with Google. Check console for details.");
     }
   };
 
@@ -96,6 +108,25 @@ const App: React.FC = () => {
       initGoogleAuth();
     }
   }, [isAuthenticated]);
+
+  // Auto-save to cloud when tasks, routine, dailyStats, or dailyAnalyses change
+  useEffect(() => {
+    if (isGoogleSynced) {
+      const timeoutId = setTimeout(() => {
+        const currentStateToSave = {
+          tasks,
+          routine,
+          dailyStats,
+          dailyAnalyses,
+        };
+        saveAppStateToSheet(currentStateToSave)
+          .then(() => console.log("Auto-saved to cloud."))
+          .catch(e => console.error("Auto-save to cloud failed:", e));
+      }, 5000); // Debounce for 5 seconds
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [tasks, routine, dailyStats, dailyAnalyses, isGoogleSynced]);
 
   const saveToHistory = useCallback(() => {
     if (isUndoingRef.current) return;

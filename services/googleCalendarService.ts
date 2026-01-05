@@ -281,3 +281,88 @@ const appendRowToSheet = async (spreadsheetId: string, range: string, values: an
     resource: { values: [values] }
   });
 };
+
+// --- App State Sync (The "Cloud Save" Logic) ---
+
+const STATE_SHEET_NAME = "AppState";
+
+/**
+ * Saves the entire application state (tasks, routine, etc.) to a specific sheet.
+ * Acts as a "Cloud Save" so mobile and desktop stay in sync.
+ */
+export const saveAppStateToSheet = async (state: any) => {
+  try {
+    const spreadsheetId = await findOrCreateZenithFlowSheet();
+
+    // 1. Ensure "AppState" sheet exists
+    // @ts-ignore
+    const sheetMeta = await gapi.client.sheets.spreadsheets.get({
+      spreadsheetId
+    });
+
+    const sheetExists = sheetMeta.result.sheets.some((s: any) => s.properties.title === STATE_SHEET_NAME);
+
+    if (!sheetExists) {
+      // Create the sheet if it doesn't exist
+      // @ts-ignore
+      await gapi.client.sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        resource: {
+          requests: [{
+            addSheet: {
+              properties: { title: STATE_SHEET_NAME, hidden: true } // Hide it so it doesn't clutter
+            }
+          }]
+        }
+      });
+    }
+
+    // 2. Save state as a JSON string in cell A1
+    const jsonState = JSON.stringify(state);
+
+    // @ts-ignore
+    await gapi.client.sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `${STATE_SHEET_NAME}!A1`,
+      valueInputOption: 'RAW',
+      resource: { values: [[jsonState]] }
+    });
+
+    console.log("App state saved to cloud!");
+  } catch (e) {
+    console.error("Error saving app state:", e);
+    // Don't throw, just log, so app doesn't crash on offline
+  }
+};
+
+/**
+ * Loads the application state from the sheet.
+ */
+export const loadAppStateFromSheet = async () => {
+  try {
+    const spreadsheetId = await findOrCreateZenithFlowSheet();
+
+    // @ts-ignore
+    const response = await gapi.client.sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: `${STATE_SHEET_NAME}!A1`
+    });
+
+    const rows = response.result.values;
+    if (rows && rows.length > 0 && rows[0].length > 0) {
+      try {
+        // Ensure we are parsing a valid JSON string
+        const jsonState = rows[0][0];
+        return JSON.parse(jsonState);
+      } catch (parseError) {
+        console.warn("Failed to parse AppState from sheet, treating as empty.", parseError);
+        return null;
+      }
+    }
+    return null;
+  } catch (e) {
+    console.error("Error loading app state from sheet:", e);
+    // Fallback: Return null so app uses local storage or defaults
+    return null;
+  }
+};
