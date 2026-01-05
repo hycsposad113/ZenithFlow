@@ -16,12 +16,18 @@ let gisInited = false;
 
 // Utility to wait for script load
 const waitForGoogleScripts = () => {
-  return new Promise<void>((resolve) => {
+  return new Promise<void>((resolve, reject) => {
+    let elapsed = 0;
     const interval = setInterval(() => {
       // @ts-ignore
       if (window.gapi && window.google) {
         clearInterval(interval);
         resolve();
+      }
+      elapsed += 100;
+      if (elapsed > 10000) { // 10s timeout
+        clearInterval(interval);
+        reject(new Error("Google scripts load timeout"));
       }
     }, 100);
   });
@@ -87,7 +93,13 @@ export const signIn = () => {
   }
 
   return new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      console.warn("ZenithFlow: Sign-in timed out");
+      reject(new Error("Sign-in timeout"));
+    }, 10000); // 10s safety timeout
+
     tokenClient.callback = async (resp: any) => {
+      clearTimeout(timeout);
       if (resp.error !== undefined) {
         console.error("Google Auth Callback Error:", resp);
         reject(resp);
@@ -100,6 +112,7 @@ export const signIn = () => {
     // @ts-ignore
     const token = gapi.client.getToken();
     if (token) {
+      clearTimeout(timeout);
       resolve();
     } else {
       // Use prompt: 'none' for silent sync on refresh
