@@ -2,7 +2,10 @@
 import { CalendarEvent, EventType } from "../types";
 
 // NOTE: Jack needs to provide a valid Client ID from Google Cloud Console
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "REMOVED_REDACTED_ID";
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+if (!CLIENT_ID) {
+  console.warn("VITE_GOOGLE_CLIENT_ID is missing. Google Calendar sync will not work.");
+}
 const DISCOVERY_DOCS = [
   "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest",
   "https://sheets.googleapis.com/$discovery/rest?version=v4",

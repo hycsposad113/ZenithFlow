@@ -69,8 +69,13 @@ const App: React.FC = () => {
   const isUndoingRef = useRef(false);
 
   const handleLogin = (user: string, pass: string) => {
-    const validUser = import.meta.env.VITE_APP_USER || 'REMOVED_REDACTED_USER';
-    const validPass = import.meta.env.VITE_APP_PASS || 'REMOVED_REDACTED_PASS';
+    const validUser = import.meta.env.VITE_APP_USER;
+    const validPass = import.meta.env.VITE_APP_PASS;
+
+    if (!validUser || !validPass) {
+      console.error("Login configuration missing in .env");
+      return false;
+    }
 
     if (user?.toLowerCase() === validUser.toLowerCase() && pass === validPass) {
       setIsAuthenticated(true);

@@ -8,7 +8,10 @@ let ai: GoogleGenAI | null = null;
 const getAI = () => {
   if (!ai) {
     // Fallback to empty string but warn
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || "REMOVED_REDACTED_KEY";
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    if (!apiKey) {
+      throw new Error("VITE_GEMINI_API_KEY is missing mapping. Please check your .env file.");
+    }
     // Using gemini-2.0-flash-exp as it is explicitly enabled in user's console
     ai = new GoogleGenAI({ apiKey });
   }
