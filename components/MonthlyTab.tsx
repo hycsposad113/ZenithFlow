@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { CalendarEvent, Task, TaskType, TaskStatus } from '../types';
 import { Button } from './Button';
 import { synthesizePeriodPerformance } from '../services/geminiService';
@@ -16,12 +15,14 @@ interface MonthlyTabProps {
 
 export const MonthlyTab: React.FC<MonthlyTabProps> = ({ events, setEvents, tasks, setTasks, dailyAnalyses, weeklyAnalyses }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [dayViewDate, setDayViewDate] = useState<string | null>(null);
+
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [monthlySynthesis, setMonthlySynthesis] = useState<any>(null);
   const [loadingSynthesis, setLoadingSynthesis] = useState(false);
-  
-  const [formData, setFormData] = useState({ title: '', durationMinutes: 60 });
+
+  const [formData, setFormData] = useState({ title: '', scheduledTime: '09:00', durationMinutes: 60 });
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -38,6 +39,17 @@ export const MonthlyTab: React.FC<MonthlyTabProps> = ({ events, setEvents, tasks
       .sort((a, b) => b[0].localeCompare(a[0]));
   }, [weeklyAnalyses, month, year]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsCreateModalOpen(false);
+        setDayViewDate(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleSynthesizeMonth = async () => {
     if (weeklyInsightList.length === 0) return;
     setLoadingSynthesis(true);
@@ -53,21 +65,21 @@ export const MonthlyTab: React.FC<MonthlyTabProps> = ({ events, setEvents, tasks
 
   const handleSave = () => {
     if (!formData.title || !selectedDate) return;
-    const newTask: Task = { 
-      id: `task-${Date.now()}`, 
-      title: formData.title, 
-      date: selectedDate, 
-      type: TaskType.OTHER, 
-      durationMinutes: formData.durationMinutes, 
-      scheduledTime: '09:00', 
-      status: TaskStatus.PLANNED, 
-      isEssential: false, 
-      subTasks: [], 
-      origin: 'planning' 
+    const newTask: Task = {
+      id: `task-${Date.now()}`,
+      title: formData.title,
+      date: selectedDate,
+      type: TaskType.OTHER,
+      durationMinutes: parseInt(String(formData.durationMinutes)) || 60,
+      scheduledTime: formData.scheduledTime || '09:00',
+      status: TaskStatus.PLANNED,
+      isEssential: false,
+      subTasks: [],
+      origin: 'planning'
     };
     setTasks(prev => [...prev, newTask]);
-    setIsModalOpen(false);
-    setFormData({ title: '', durationMinutes: 60 });
+    setIsCreateModalOpen(false);
+    setFormData({ title: '', scheduledTime: '09:00', durationMinutes: 60 });
   };
 
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -111,10 +123,11 @@ export const MonthlyTab: React.FC<MonthlyTabProps> = ({ events, setEvents, tasks
           const isToday = new Date().toLocaleDateString('en-CA') === dateStr;
 
           return (
-            <div 
-              key={d} 
-              className={`p-4 border-r border-b border-white/5 hover:bg-white/10 transition-all cursor-pointer min-h-[120px] md:min-h-[140px] flex flex-col group ${isToday ? 'bg-white/10 ring-1 ring-inset ring-white/20' : ''}`} 
-              onClick={() => { setSelectedDate(dateStr); setIsModalOpen(true); }}
+            <div
+              key={d}
+              className={`p-4 border-r border-b border-white/5 hover:bg-white/10 transition-all cursor-pointer min-h-[120px] md:min-h-[140px] flex flex-col group ${isToday ? 'bg-white/10 ring-1 ring-inset ring-white/20' : ''}`}
+              onClick={() => { setSelectedDate(dateStr); setIsCreateModalOpen(true); }}
+              onDoubleClick={(e) => { e.stopPropagation(); setDayViewDate(dateStr); }}
             >
               <span className={`text-[13px] font-bold self-end mb-3 transition-colors ${isToday ? 'bg-white text-[#c0373f] px-2.5 py-1 rounded-full shadow-lg scale-110' : 'text-white/30 group-hover:text-white/60'}`}>
                 {d}
@@ -144,95 +157,164 @@ export const MonthlyTab: React.FC<MonthlyTabProps> = ({ events, setEvents, tasks
       {/* Reviews Section */}
       <section className="mt-10 border-t border-white/10 pt-12">
         <div className="flex justify-between items-center mb-10">
-           <h3 className="text-3xl font-bodoni font-bold text-white flex items-center gap-4">
-             <Target size={32} className="text-white/60" /> Weekly Strategic Reviews
-           </h3>
-           <Button onClick={handleSynthesizeMonth} variant="secondary" isLoading={loadingSynthesis} disabled={weeklyInsightList.length === 0} className="rounded-full h-12 px-10 shadow-xl border-white/20 hover:bg-white/10">
-             <Sparkles size={18} className="mr-3" /> Monthly Review
-           </Button>
+          <h3 className="text-3xl font-bodoni font-bold text-white flex items-center gap-4">
+            <Target size={32} className="text-white/60" /> Weekly Strategic Reviews
+          </h3>
+          <Button onClick={handleSynthesizeMonth} variant="secondary" isLoading={loadingSynthesis} disabled={weeklyInsightList.length === 0} className="rounded-full h-12 px-10 shadow-xl border-white/20 hover:bg-white/10">
+            <Sparkles size={18} className="mr-3" /> Monthly Review
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          {/* ... existing review UI ... */}
           <div className="space-y-8">
-             <h4 className="text-[12px] font-bold text-white/30 uppercase tracking-[0.3em]">Historical Weekly Syntheses</h4>
-             <div className="grid grid-cols-1 gap-6">
-               {weeklyInsightList.length > 0 ? weeklyInsightList.map(([date, data], idx) => (
-                 <div key={idx} className="glass-card p-8 rounded-[40px] border border-white/10 hover:border-white/20 transition-all group shadow-lg">
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="text-[11px] font-mono text-white/40">{date}</span>
-                      <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest">Pivot: {data.improvement}</span>
-                    </div>
-                    <p className="text-[15px] italic text-white/90 leading-relaxed font-light font-bodoni mb-4">"{data.summary}"</p>
-                    <div className="flex flex-wrap gap-2">
-                      {data.patterns?.map((p: string, i: number) => (
-                        <span key={i} className="px-2.5 py-1 bg-white/5 rounded-lg text-[10px] text-white/50 border border-white/5">{p}</span>
-                      ))}
-                    </div>
-                 </div>
-               )) : (
-                 <div className="col-span-full py-24 text-center border-2 border-dashed border-white/5 rounded-[50px] text-white/20 text-sm font-medium">
-                   No weekly syntheses performed for this month yet.
-                 </div>
-               )}
-             </div>
+            <h4 className="text-[12px] font-bold text-white/30 uppercase tracking-[0.3em]">Historical Weekly Syntheses</h4>
+            <div className="grid grid-cols-1 gap-6">
+              {weeklyInsightList.length > 0 ? weeklyInsightList.map(([date, data], idx) => (
+                <div key={idx} className="glass-card p-8 rounded-[40px] border border-white/10 hover:border-white/20 transition-all group shadow-lg">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-[11px] font-mono text-white/40">{date}</span>
+                    <span className="text-[10px] font-bold text-white/20 uppercase tracking-widest">Pivot: {data.improvement}</span>
+                  </div>
+                  <p className="text-[15px] italic text-white/90 leading-relaxed font-light font-bodoni mb-4">"{data.summary}"</p>
+                  <div className="flex flex-wrap gap-2">
+                    {data.patterns?.map((p: string, i: number) => (
+                      <span key={i} className="px-2.5 py-1 bg-white/5 rounded-lg text-[10px] text-white/50 border border-white/5">{p}</span>
+                    ))}
+                  </div>
+                </div>
+              )) : (
+                <div className="col-span-full py-24 text-center border-2 border-dashed border-white/5 rounded-[50px] text-white/20 text-sm font-medium">
+                  No weekly syntheses performed for this month yet.
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="relative">
-             {monthlySynthesis ? (
-               <div className="glass-card-dark p-12 rounded-[60px] border border-white/20 shadow-[0_40px_100px_rgba(0,0,0,0.4)] animate-fade-in space-y-12 sticky top-8">
-                  <div className="space-y-6">
-                    <h4 className="text-3xl font-bodoni font-bold text-white border-b border-white/10 pb-6">Monthly Vision</h4>
-                    <p className="text-[17px] leading-relaxed text-white/90 font-light font-bodoni">{monthlySynthesis.summary}</p>
-                  </div>
-                  <div className="bg-white/5 p-10 rounded-[48px] border border-white/10 shadow-inner group transition-all hover:bg-white/[0.07]">
-                     <p className="text-[12px] font-bold text-white/30 uppercase mb-5 tracking-[0.2em]">Core Strategic Improvement</p>
-                     <p className="text-[22px] font-bodoni font-bold text-white leading-tight group-hover:text-white/100 transition-colors">{monthlySynthesis.improvement}</p>
-                  </div>
-                  <div className="space-y-5">
-                     <p className="text-[12px] font-bold text-white/30 uppercase tracking-[0.2em]">Next Cycle Guidelines</p>
-                     <p className="text-[16px] text-white/70 italic leading-relaxed border-l-4 border-white/10 pl-8 py-2">{monthlySynthesis.suggestions}</p>
-                  </div>
-               </div>
-             ) : (
-               <div className="h-[500px] flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-[60px] bg-white/5 text-white/10 px-12 text-center group">
-                  <Brain size={80} className="mb-8 opacity-5 group-hover:opacity-10 transition-opacity" />
-                  <p className="text-lg italic font-bodoni font-light max-w-sm leading-relaxed text-white/30">
-                    Once you complete weekly strategic reviews, ZenithFlow will generate a visionary monthly summary here.
-                  </p>
-               </div>
-             )}
+            {monthlySynthesis ? (
+              <div className="glass-card-dark p-12 rounded-[60px] border border-white/20 shadow-[0_40px_100px_rgba(0,0,0,0.4)] animate-fade-in space-y-12 sticky top-8">
+                <div className="space-y-6">
+                  <h4 className="text-3xl font-bodoni font-bold text-white border-b border-white/10 pb-6">Monthly Vision</h4>
+                  <p className="text-[17px] leading-relaxed text-white/90 font-light font-bodoni">{monthlySynthesis.summary}</p>
+                </div>
+                <div className="bg-white/5 p-10 rounded-[48px] border border-white/10 shadow-inner group transition-all hover:bg-white/[0.07]">
+                  <p className="text-[12px] font-bold text-white/30 uppercase mb-5 tracking-[0.2em]">Core Strategic Improvement</p>
+                  <p className="text-[22px] font-bodoni font-bold text-white leading-tight group-hover:text-white/100 transition-colors">{monthlySynthesis.improvement}</p>
+                </div>
+                <div className="space-y-5">
+                  <p className="text-[12px] font-bold text-white/30 uppercase tracking-[0.2em]">Next Cycle Guidelines</p>
+                  <p className="text-[16px] text-white/70 italic leading-relaxed border-l-4 border-white/10 pl-8 py-2">{monthlySynthesis.suggestions}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="h-[500px] flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-[60px] bg-white/5 text-white/10 px-12 text-center group">
+                <Brain size={80} className="mb-8 opacity-5 group-hover:opacity-10 transition-opacity" />
+                <p className="text-lg italic font-bodoni font-light max-w-sm leading-relaxed text-white/30">
+                  Once you complete weekly strategic reviews, ZenithFlow will generate a visionary monthly summary here.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Milestone Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-2xl z-[2000] flex items-center justify-center p-4" onClick={() => setIsModalOpen(false)}>
+      {/* Create Task Modal */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-2xl z-[2000] flex items-center justify-center p-6" onClick={() => setIsCreateModalOpen(false)}>
           <div className="glass-card-dark w-full max-w-md rounded-[50px] p-10 border border-white/30 shadow-[0_40px_120px_rgba(0,0,0,0.6)] animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-10">
               <div className="space-y-1">
-                <h3 className="text-2xl font-bodoni font-bold text-white tracking-wide">Daily Milestone</h3>
+                <h3 className="text-2xl font-bodoni font-bold text-white tracking-wide">New Planned Task</h3>
                 <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{selectedDate}</p>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-3 hover:bg-white/10 rounded-full text-white/30 transition-all">
+              <button onClick={() => setIsCreateModalOpen(false)} className="p-3 hover:bg-white/10 rounded-full text-white/30 transition-all">
                 <X size={24} />
               </button>
             </div>
             <div className="space-y-8">
               <div>
-                 <label className="text-[11px] font-bold text-white/30 uppercase tracking-[0.2em] mb-3 block">Primary Objective</label>
-                 <textarea 
-                   autoFocus 
-                   rows={3}
-                   className="w-full bg-black/40 border border-white/10 rounded-3xl px-6 py-5 text-base font-medium text-white focus:ring-2 focus:ring-white/20 outline-none transition-all placeholder:text-white/10 resize-none" 
-                   value={formData.title} 
-                   onChange={e => setFormData({...formData, title: e.target.value})} 
-                   placeholder="What is the vital few for this day?" 
-                 />
+                <label className="text-[11px] font-bold text-white/30 uppercase tracking-[0.2em] mb-3 block">Task Title</label>
+                <input
+                  autoFocus
+                  className="w-full bg-black/40 border border-white/10 rounded-3xl px-6 py-5 text-base font-medium text-white focus:ring-2 focus:ring-white/20 outline-none transition-all placeholder:text-white/10"
+                  value={formData.title}
+                  onChange={e => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="Enter task title..."
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[11px] font-bold text-white/30 uppercase tracking-[0.2em] mb-3 block">Start Time</label>
+                  <input
+                    type="time"
+                    className="w-full bg-black/40 border border-white/10 rounded-3xl px-6 py-5 text-sm font-medium text-white outline-none"
+                    value={formData.scheduledTime}
+                    onChange={e => setFormData({ ...formData, scheduledTime: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-white/30 uppercase tracking-[0.2em] mb-3 block">Duration (min)</label>
+                  <input
+                    type="number"
+                    className="w-full bg-black/40 border border-white/10 rounded-3xl px-6 py-5 text-sm font-medium text-white outline-none"
+                    value={formData.durationMinutes}
+                    onChange={e => setFormData({ ...formData, durationMinutes: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
               </div>
               <Button onClick={handleSave} className="w-full h-16 rounded-[28px] text-[13px] shadow-2xl hover:scale-[1.02] transition-transform">
-                Lock in Milestone
+                Create
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Day Overview Modal */}
+      {dayViewDate && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-2xl z-[2000] flex items-center justify-center p-6" onClick={() => setDayViewDate(null)}>
+          <div className="glass-card-dark w-full max-w-2xl max-h-[80vh] flex flex-col rounded-[50px] p-10 border border-white/30 shadow-[0_40px_120px_rgba(0,0,0,0.6)] animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-10 shrink-0">
+              <h3 className="text-3xl font-bodoni font-bold text-white">{new Date(dayViewDate).toLocaleDateString('default', { weekday: 'long', month: 'long', day: 'numeric' })}</h3>
+              <button onClick={() => setDayViewDate(null)} className="p-3 hover:bg-white/10 rounded-full text-white/30 transition-all">
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto space-y-4 pr-2 scrollbar-hide flex-1">
+              {/* Combined list of Events and Tasks for that day */}
+
+              {(() => {
+                const dTasks = tasks.filter(t => t.date === dayViewDate);
+                const dEvents = events.filter(e => e.date === dayViewDate && !dTasks.some(t => t.googleEventId === e.id));
+                const combined = [
+                  ...dTasks.map(t => ({ ...t, isTask: true, time: t.scheduledTime })),
+                  ...dEvents.map(e => ({ ...e, isTask: false, time: e.startTime }))
+                ].sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+                if (combined.length === 0) return (
+                  <div className="py-20 text-center text-white/20 italic border-2 border-dashed border-white/5 rounded-3xl">No events or tasks scheduled.</div>
+                );
+
+                return combined.map((item: any, idx) => (
+                  <div key={idx} className="glass-card p-6 rounded-3xl border border-white/10 flex items-center gap-6">
+                    <div className="w-16 text-center">
+                      <p className="text-sm font-bold text-white">{item.time || '--:--'}</p>
+                    </div>
+                    <div className="flex-1 border-l border-white/10 pl-6">
+                      <p className="text-lg font-bodoni font-bold text-white leading-tight mb-1">{item.title}</p>
+                      <span className={`text-[9px] px-2 py-0.5 rounded border ${item.isTask ? 'bg-white/10 border-white/20 text-white/60' : 'bg-[#bf363e]/20 border-[#bf363e]/30 text-[#bf363e]'} uppercase tracking-wider`}>
+                        {item.isTask ? 'Task' : 'Event'}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-bold text-white/40">{item.durationMinutes}m</p>
+                    </div>
+                  </div>
+                ));
+              })()}
+
             </div>
           </div>
         </div>
