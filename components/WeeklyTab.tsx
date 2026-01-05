@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { CalendarEvent, EventType, Task, TaskType, TaskStatus, DailyStats } from '../types';
-import { ChevronLeft, ChevronRight, Plus, X, Clock, Brain, Sparkles, ChevronRight as ArrowIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X, Clock, Brain, Sparkles, ChevronRight as ArrowIcon, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Button } from './Button';
 import { synthesizePeriodPerformance } from '../services/geminiService';
 
@@ -147,7 +147,7 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({
           <Button variant="secondary" onClick={() => {
             const d = new Date(currentWeekStart); d.setDate(d.getDate() - 7); setCurrentWeekStart(d);
           }} className="rounded-full w-10 h-10 p-0 flex items-center justify-center">
-            <ChevronLeft size={18} className="text-white" />
+            <ArrowLeft className="w-5 h-5 text-white" strokeWidth={2.5} />
           </Button>
 
           {/* Today Button */}
@@ -157,7 +157,7 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({
             const diff = d.getDate() - day + (day === 0 ? -6 : 1);
             d.setDate(diff); d.setHours(0, 0, 0, 0);
             setCurrentWeekStart(d);
-          }} className="px-6 rounded-full text-[10px] font-bold">
+          }} className="px-6 rounded-full text-[10px] font-bold h-10">
             TODAY
           </Button>
 
@@ -165,7 +165,7 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({
           <Button variant="secondary" onClick={() => {
             const d = new Date(currentWeekStart); d.setDate(d.getDate() + 7); setCurrentWeekStart(d);
           }} className="rounded-full w-10 h-10 p-0 flex items-center justify-center">
-            <ChevronRight size={18} className="text-white" />
+            <ArrowRight className="w-5 h-5 text-white" strokeWidth={2.5} />
           </Button>
         </div>
       </header>
