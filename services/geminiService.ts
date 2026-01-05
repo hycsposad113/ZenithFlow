@@ -75,6 +75,37 @@ const periodSynthesisSchema = {
   required: ["summary", "patterns", "suggestions", "improvement"]
 };
 
+// Helper to safely parse JSON from AI response
+const parseJSON = (text: string) => {
+  try {
+    // 1. Try passing directly
+    return JSON.parse(text);
+  } catch (e) {
+    // 2. Try stripping markdown code blocks
+    const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```\n([\s\S]*?)\n```/);
+    if (jsonMatch && jsonMatch[1]) {
+      try {
+        return JSON.parse(jsonMatch[1]);
+      } catch (e2) {
+        console.warn("Failed to parse stripped JSON:", e2);
+      }
+    }
+    console.warn("Retrying with raw text cleanup...");
+    // 3. Last ditch: some models return "Here is json: { ... }"
+    const openBrace = text.indexOf('{');
+    const closeBrace = text.lastIndexOf('}');
+    if (openBrace >= 0 && closeBrace > openBrace) {
+      try {
+        return JSON.parse(text.substring(openBrace, closeBrace + 1));
+      } catch (e3) {
+        console.error("JSON Parse Critical Failure:", e3);
+        return {};
+      }
+    }
+    return {};
+  }
+};
+
 export const generateDailyRitual = async (currentTasks: Task[], events: CalendarEvent[], knowledgeBase: KnowledgeItem[] = []) => {
   const prompt = `
     Jack's Daily Schedule Template (STRICTLY FOLLOW THIS):
@@ -112,7 +143,7 @@ export const generateDailyRitual = async (currentTasks: Task[], events: Calendar
     }
   });
 
-  return JSON.parse(response.text || "{}");
+  return parseJSON(response.text || "{}");
 };
 
 export const analyzeDailyReflection = async (tasks: Task[], knowledgeBase: KnowledgeItem[] = []) => {
@@ -137,7 +168,7 @@ export const analyzeDailyReflection = async (tasks: Task[], knowledgeBase: Knowl
     }
   });
 
-  return JSON.parse(response.text || "{}");
+  return parseJSON(response.text || "{}");
 };
 
 export interface DailyStats {
@@ -167,7 +198,7 @@ export const synthesizePeriodPerformance = async (insights: any[], period: 'Week
     } // ... rest of config
   });
 
-  return JSON.parse(response.text || "{}");
+  return parseJSON(response.text || "{}");
 };
 
 export const analyzeFinancialPeriod = async (transactions: Transaction[], periodLabel: string) => {
@@ -188,7 +219,7 @@ export const analyzeFinancialPeriod = async (transactions: Transaction[], period
     }
   });
 
-  return JSON.parse(response.text || "{}");
+  return parseJSON(response.text || "{}");
 }
 
 export const analyzeTotalFinancialStatus = async (transactions: Transaction[]) => {
@@ -209,5 +240,5 @@ export const analyzeTotalFinancialStatus = async (transactions: Transaction[]) =
     }
   });
 
-  return JSON.parse(response.text || "{}");
+  return parseJSON(response.text || "{}");
 }

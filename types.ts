@@ -5,6 +5,8 @@ export enum TaskType {
   ENGLISH_SPEAKING = 'English Speaking',
   AI_PRACTICE = 'AI Practice',
   CRYPTO_ANALYSIS = 'Crypto Analysis',
+  EVENT = 'Event',
+  GOAL = 'Goal',
   OTHER = 'Other'
 }
 

@@ -35,7 +35,7 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({
 
   const [formData, setFormData] = useState({
     title: '',
-    type: 'Other',
+    type: TaskType.GOAL,
     startTime: '09:00',
     durationMinutes: 60,
   });
@@ -174,7 +174,8 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({
         {weekDays.map((day, idx) => {
           const dateStr = formatDateISO(day);
           const isToday = new Date().toLocaleDateString('en-CA') === dateStr;
-          const dayTasks = tasks.filter(t => t.date === dateStr && t.origin === 'planning');
+          // STRICT FILTER: Only show high-level items (Event/Goal) in Weekly View
+          const dayTasks = tasks.filter(t => t.date === dateStr && (t.type === TaskType.EVENT || t.type === TaskType.GOAL));
           const dayEvents = events.filter(e => e.date === dateStr);
           const sortedItems = [...dayEvents.map(e => ({ ...e, isEvent: true })), ...dayTasks.map(t => ({ ...t, isEvent: false, startTime: t.scheduledTime || '00:00' }))].sort((a, b) => a.startTime.localeCompare(b.startTime));
 
@@ -286,6 +287,14 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({
             </div>
             <div className="space-y-4">
               <input autoFocus className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm font-bold text-white" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="Title..." />
+              <select
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm font-bold text-white outline-none appearance-none"
+                value={formData.type}
+                onChange={e => setFormData({ ...formData, type: e.target.value })}
+              >
+                <option value={TaskType.GOAL} className="bg-[#1a1a1a]">Goal</option>
+                <option value={TaskType.EVENT} className="bg-[#1a1a1a]">Event</option>
+              </select>
               <div className="grid grid-cols-2 gap-4">
                 <input type="time" className="bg-white/5 border border-white/10 rounded-lg p-2 text-xs text-white" value={formData.startTime} onChange={e => setFormData({ ...formData, startTime: e.target.value })} />
                 <input type="time" className="bg-white/5 border border-white/10 rounded-lg p-2 text-xs text-white" value={calculateEndTime(formData.startTime, formData.durationMinutes)} onChange={e => setFormData({ ...formData, durationMinutes: calculateDuration(formData.startTime, e.target.value) })} />

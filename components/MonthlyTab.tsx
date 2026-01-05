@@ -22,7 +22,7 @@ export const MonthlyTab: React.FC<MonthlyTabProps> = ({ events, setEvents, tasks
   const [monthlySynthesis, setMonthlySynthesis] = useState<any>(null);
   const [loadingSynthesis, setLoadingSynthesis] = useState(false);
 
-  const [formData, setFormData] = useState({ title: '', scheduledTime: '09:00', durationMinutes: 60 });
+  const [formData, setFormData] = useState({ title: '', scheduledTime: '09:00', durationMinutes: 60, type: TaskType.GOAL });
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -87,7 +87,7 @@ export const MonthlyTab: React.FC<MonthlyTabProps> = ({ events, setEvents, tasks
       id: `task-${Date.now()}`,
       title: formData.title,
       date: selectedDate,
-      type: TaskType.OTHER,
+      type: formData.type,
       durationMinutes: parseInt(String(formData.durationMinutes)) || 60,
       scheduledTime: formData.scheduledTime || '09:00',
       status: TaskStatus.PLANNED,
@@ -97,7 +97,7 @@ export const MonthlyTab: React.FC<MonthlyTabProps> = ({ events, setEvents, tasks
     };
     setTasks(prev => [...prev, newTask]);
     setIsCreateModalOpen(false);
-    setFormData({ title: '', scheduledTime: '09:00', durationMinutes: 60 });
+    setFormData({ title: '', scheduledTime: '09:00', durationMinutes: 60, type: TaskType.GOAL });
   };
 
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -137,7 +137,8 @@ export const MonthlyTab: React.FC<MonthlyTabProps> = ({ events, setEvents, tasks
           const dAdjusted = d.toString().padStart(2, '0');
           const dateStr = `${year}-${mAdjusted}-${dAdjusted}`;
           const dayEvents = events.filter(e => e.date === dateStr);
-          const dayTasks = tasks.filter(t => t.date === dateStr && t.origin === 'planning');
+          // STRICT FILTER: Only show high-level items (Event/Goal) in Monthly View
+          const dayTasks = tasks.filter(t => t.date === dateStr && (t.type === TaskType.EVENT || t.type === TaskType.GOAL));
           const isToday = new Date().toLocaleDateString('en-CA') === dateStr;
 
           return (
@@ -260,6 +261,17 @@ export const MonthlyTab: React.FC<MonthlyTabProps> = ({ events, setEvents, tasks
                   onChange={e => setFormData({ ...formData, title: e.target.value })}
                   placeholder="Enter task title..."
                 />
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-white/30 uppercase tracking-[0.2em] mb-3 block">Type</label>
+                <select
+                  className="w-full bg-black/40 border border-white/10 rounded-3xl px-6 py-5 text-sm font-medium text-white outline-none appearance-none"
+                  value={formData.type}
+                  onChange={e => setFormData({ ...formData, type: e.target.value as TaskType })}
+                >
+                  <option value={TaskType.GOAL} className="bg-[#1a1a1a]">Goal</option>
+                  <option value={TaskType.EVENT} className="bg-[#1a1a1a]">Event</option>
+                </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
