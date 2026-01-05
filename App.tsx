@@ -50,6 +50,7 @@ const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState<Tab>(Tab.PLANNING);
   const [isTimelineOpen, setIsTimelineOpen] = useState(false);
   const [isGoogleSynced, setIsGoogleSynced] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(true); // Default to true to check first
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -108,6 +109,7 @@ const App: React.FC = () => {
           localStorage.removeItem('is_google_synced');
         }
       }
+      setIsRestoring(false); // Done checking
     };
 
     // delaying slightly to ensure other effects run? no need.

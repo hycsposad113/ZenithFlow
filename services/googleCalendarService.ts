@@ -13,12 +13,32 @@ let tokenClient: any;
 let gapiInited = false;
 let gisInited = false;
 
+// Utility to wait for script load
+const waitForGoogleScripts = () => {
+  return new Promise<void>((resolve) => {
+    const interval = setInterval(() => {
+      // @ts-ignore
+      if (window.gapi && window.google) {
+        clearInterval(interval);
+        resolve();
+      }
+    }, 100);
+  });
+};
+
 /**
  * Initializes Google API Client
  */
-export const initGoogleAuth = () => {
+export const initGoogleAuth = async () => {
+  await waitForGoogleScripts();
+
   return new Promise<void>((resolve, reject) => {
     try {
+      if (gisInited && gapiInited) {
+        resolve();
+        return;
+      }
+
       // @ts-ignore
       gapi.load('client', async () => {
         try {
@@ -40,15 +60,16 @@ export const initGoogleAuth = () => {
         scope: SCOPES,
         callback: '', // defined at request time
         error_callback: (err: any) => {
-          console.error("GIS Token Client Error:", err);
+          // If error is related to popup closing or similar, we might ignore.
+          console.warn("GIS Token Client Warning:", err);
         }
       });
       gisInited = true;
-
-      const maybeResolve = () => {
-        if (gapiInited && gisInited) resolve();
-      };
       maybeResolve();
+
+      function maybeResolve() {
+        if (gapiInited && gisInited) resolve();
+      }
     } catch (err) {
       console.error("Init Error:", err);
       reject(err);
