@@ -81,41 +81,31 @@ const App: React.FC = () => {
 
   // --- Initialization & Google Sync ---
 
-  // Auto-restore session on mount
+  // Auto-restore session on mount or when authenticated
   useEffect(() => {
+    if (!isAuthenticated) {
+      setIsRestoring(false);
+      return;
+    }
+
     const tryRestoreSession = async () => {
       const wasSynced = localStorage.getItem('is_google_synced') === 'true';
       if (wasSynced) {
         console.log("Restoring Google Session...");
         try {
-          // Initialize GAPI first
-          await initGoogleAuth();
-
-          // Try to silent sign-in or check existing token
-          // For simplicity, we just trigger the full sync flow but without prompt if token exists
-          // The signIn function handles token check. 
-          // However, user might need to re-click if token expired. 
-          // Let's try to just run syncGoogle logic.
-
-          // We'll just call the same logic as syncGoogle but handle errors gracefully
-          // To avoid multiple prompts, check token first?
-          // initGoogleAuth sets up the client.
-
-          // Let's call a specialized restore function or just rely on manual sync if token is gone.
-          // Better UX: Try to fetch. If 401, then set synced to false.
-          await syncGoogle(true); // true = silent mode
+          // Initialize GAPI and restore
+          await syncGoogle(true);
         } catch (e) {
           console.warn("Session restore failed", e);
           setIsGoogleSynced(false);
           localStorage.removeItem('is_google_synced');
         }
       }
-      setIsRestoring(false); // Done checking
+      setIsRestoring(false);
     };
 
-    // delaying slightly to ensure other effects run? no need.
     tryRestoreSession();
-  }, []);
+  }, [isAuthenticated]);
 
   const syncGoogle = async (silent = false) => {
     try {

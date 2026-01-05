@@ -77,6 +77,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onG
         <button
           onClick={() => {
             localStorage.removeItem('zenithflow_auth');
+            localStorage.removeItem('is_google_synced');
+            localStorage.removeItem('zenithflow_sheet_id');
             window.location.reload();
           }}
           className="w-full flex items-center justify-center gap-2 py-3 mt-4 text-[10px] font-bold text-white/20 uppercase tracking-widest hover:text-white/60 transition-colors"

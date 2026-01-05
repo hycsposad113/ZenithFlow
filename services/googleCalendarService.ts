@@ -270,7 +270,7 @@ export const findOrCreateZenithFlowSheet = async (): Promise<string> => {
       fields: 'files(id, name)',
     });
 
-    const files = listResp.result.files;
+    const files = listResp?.result?.files;
     if (files && files.length > 0) {
       spreadsheetId = files[0].id;
       localStorage.setItem('zenithflow_sheet_id', spreadsheetId);
@@ -420,7 +420,10 @@ export const saveAppStateToSheet = async (state: any) => {
     console.log("App state saved to cloud!");
   } catch (e) {
     console.error("Error saving app state:", e);
-    // Don't throw, just log, so app doesn't crash on offline
+    // DEBUG: Alert user to debug drive issue
+    // @ts-ignore
+    const msg = e.result?.error?.message || e.message || JSON.stringify(e);
+    alert("GOOGLE SYNC ERROR: " + msg + "\nPlease check console and ensure you have re-logged in.");
   }
 };
 
