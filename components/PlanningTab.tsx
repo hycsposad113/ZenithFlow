@@ -286,7 +286,7 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
       </div>
 
       {/* Stats and Insight Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 md:gap-6">
         <div className="glass-card p-6 rounded-3xl border border-white/20 flex flex-col min-h-[160px]">
           <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">Daily Insight (Yesterday)</p>
           <div className="flex-1 flex flex-col justify-center">
@@ -298,6 +298,11 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
               <p className="text-[12px] text-white/50 italic font-light">Complete yesterday's review to see insights.</p>
             )}
           </div>
+        </div>
+
+        <div className="glass-card p-6 rounded-3xl border border-white/20 flex flex-col min-h-[160px]">
+          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">Daily Mantra</p>
+          <div className="flex-1 flex flex-col justify-center"><p className="text-[14px] font-bodoni font-medium text-white/90 leading-snug italic">"{mantra}"</p></div>
         </div>
 
         <div className="glass-card p-6 rounded-3xl border border-white/20 flex flex-col items-center justify-center min-h-[160px]">
@@ -321,11 +326,6 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
           <h4 className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-2 w-full text-left">Deep Focus</h4>
           <span className="text-4xl font-bodoni font-bold text-white">{totalFocusMinutes}</span>
           <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest mt-1">Minutes Today</span>
-        </div>
-
-        <div className="glass-card p-6 rounded-3xl border border-white/20 flex flex-col min-h-[160px]">
-          <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">Daily Mantra</p>
-          <div className="flex-1 flex flex-col justify-center"><p className="text-[14px] font-bodoni font-medium text-white/90 leading-snug italic">"{mantra}"</p></div>
         </div>
       </div>
 
