@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import { ZENITH_SYSTEM_INSTRUCTION } from "../constants";
-import { Task, Transaction, KnowledgeItem } from "../types";
+import { Task, Transaction, KnowledgeItem, CalendarEvent } from "../types";
 
 // Initialize lazily to prevent crash if key is missing on load
 let ai: GoogleGenAI | null = null;
@@ -75,14 +75,29 @@ const periodSynthesisSchema = {
   required: ["summary", "patterns", "suggestions", "improvement"]
 };
 
-export const generateMorningPlan = async (currentTasks: Task[], knowledgeBase: KnowledgeItem[] = []) => {
+export const generateDailyRitual = async (currentTasks: Task[], events: CalendarEvent[], knowledgeBase: KnowledgeItem[] = []) => {
   const prompt = `
-    Jack's current tasks from timetable: ${JSON.stringify(currentTasks)}.
-    Please organize the day. Rules:
-    1. Identify existing Lectures/Study.
-    2. Insert "English Speaking" (30m) and "AI Practice" (45m).
-    3. Respect 15:00-17:00 NL time as "Family Contact".
-    4. Mark only 1-2 essential items.
+    Jack's Daily Schedule Template (STRICTLY FOLLOW THIS):
+    - **Morning**: Wake up -> AI Video/Design/English (Fill empty slots around fixed events).
+    - **Lunch**: 12:30 - 13:30 (Fixed break).
+    - **Afternoon**: Classes (Fixed) OR Self Study (if free).
+    - **Dinner/Rest**: 17:00 - 19:30 (Fixed break).
+    - **Night**: 19:30 - 22:10 (Study/Deep Work).
+    - **Wind Down (MANDATORY)**:
+      - 22:10 - 22:30: Daily Review.
+      - 22:30 - 23:00: Reading.
+      - 23:00: Sleep Target.
+
+    Current Context:
+    1. Fixed Calendar Events (Do NOT change/move): ${JSON.stringify(events.map(e => ({ title: e.title, start: e.startTime, duration: e.durationMinutes })))}
+    2. Existing Tasks: ${JSON.stringify(currentTasks.map(t => ({ title: t.title, time: t.scheduledTime })))}
+
+    Directives:
+    1. **Fill Gaps**: Only suggest *NEW* tasks for empty slots based on the template above.
+    2. **Conflict Free**: Do NOT overlap with Fixed Calendar Events.
+    3. **Mandatory Items**: Ensure "Daily Review" (22:10) and "Reading" (22:30) are present if not already there.
+    4. **Standard Items**: If morning is free, add "English Speaking" (30m) or "AI Practice" (45m).
+    5. **Output**: Only return the NEW tasks to be added.
   `;
 
   const response = await getAI().models.generateContent({

@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Task, TaskType, TaskStatus, KnowledgeItem, CalendarEvent, EventType } from '../types';
 import { Button } from './Button';
-import { generateMorningPlan } from '../services/geminiService';
+import { generateDailyRitual } from '../services/geminiService';
 import { deleteGoogleEvent, updateGoogleEvent } from '../services/googleCalendarService';
 import {
   Zap, Trash2, CheckCircle2, Circle, X, Clock, Sunrise, Brain, Dumbbell
@@ -79,7 +79,11 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
   const handleMorningRitual = async () => {
     setLoading(true);
     try {
-      const result = await generateMorningPlan(tasks.filter(t => t.date === todayStr), knowledge);
+      const result = await generateDailyRitual(
+        tasks.filter(t => t.date === todayStr),
+        events.filter(e => e.date === todayStr),
+        knowledge
+      );
       const suggestedTasks: Task[] = (result.tasks || []).filter((t: any) => t != null).map((t: any, idx: number) => {
         const title = t.title || "New Task";
         const titleLower = title.toLowerCase();
@@ -89,7 +93,9 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
           date: todayStr,
           type: titleLower.includes('english') ? TaskType.ENGLISH_SPEAKING :
             titleLower.includes('ai') ? TaskType.AI_PRACTICE :
-              titleLower.includes('urbanism') ? TaskType.LECTURE : TaskType.OTHER,
+              titleLower.includes('reading') ? TaskType.SELF_STUDY :
+                titleLower.includes('review') ? TaskType.OTHER :
+                  titleLower.includes('urbanism') ? TaskType.LECTURE : TaskType.OTHER,
           durationMinutes: t.durationMinutes || 60,
           scheduledTime: t.startTime || "09:00",
           status: TaskStatus.PLANNED,
