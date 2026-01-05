@@ -69,7 +69,10 @@ const App: React.FC = () => {
   const isUndoingRef = useRef(false);
 
   const handleLogin = (user: string, pass: string) => {
-    if (user?.toLowerCase() === 'REMOVED_REDACTED_USER' && pass === 'REMOVED_REDACTED_PASS') {
+    const validUser = import.meta.env.VITE_APP_USER || 'REMOVED_REDACTED_USER';
+    const validPass = import.meta.env.VITE_APP_PASS || 'REMOVED_REDACTED_PASS';
+
+    if (user?.toLowerCase() === validUser.toLowerCase() && pass === validPass) {
       setIsAuthenticated(true);
       localStorage.setItem('zenithflow_auth', 'true');
       return true;
