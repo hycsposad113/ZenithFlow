@@ -87,7 +87,7 @@ export const initGoogleAuth = async () => {
 /**
  * Requests authorization from user
  */
-export const signIn = () => {
+export const signIn = (silent = false) => {
   if (!tokenClient) {
     return Promise.reject("Google Auth not initialized. Check your Client ID and API enablement.");
   }
@@ -97,15 +97,14 @@ export const signIn = () => {
       console.warn("ZenithFlow: Sign-in timed out");
       // Don't reject for silent attempts, just resolve so app proceeds
       resolve();
-    }, 8000); // Slightly shorter timeout for perceived speed
+    }, 10000);
 
     tokenClient.callback = async (resp: any) => {
       clearTimeout(timeout);
       if (resp.error !== undefined) {
-        console.warn("Google Auth Callback Error (Silent/Normal):", resp.error);
-        if (resp.error === 'immediate_failed') {
-          // 'immediate_failed' usually means prompt: 'none' failed. 
-          // Resolve without token so app starts normally.
+        console.warn("Google Auth Callback Error:", resp.error);
+        if (resp.error === 'immediate_failed' || resp.error === 'popup_closed_by_user') {
+          // Resolve so app starts normally even if sync fails
           resolve();
         } else {
           reject(resp);
@@ -115,16 +114,14 @@ export const signIn = () => {
       resolve();
     };
 
-    // 如果已經有 token 就不用重複跳視窗，除非失效
     // @ts-ignore
     const token = gapi.client.getToken();
     if (token && token.access_token) {
       clearTimeout(timeout);
       resolve();
     } else {
-      // Use prompt: 'none' for silent sync on refresh. 
-      // If it fails, 'immediate_failed' will be caught in callback.
-      tokenClient.requestAccessToken({ prompt: 'none' });
+      // Use prompt: 'none' only for silent background checks
+      tokenClient.requestAccessToken({ prompt: silent ? 'none' : '' });
     }
   });
 };

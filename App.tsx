@@ -121,7 +121,7 @@ const App: React.FC = () => {
     try {
       if (!silent) console.log("Starting Google Sync...");
       await initGoogleAuth();
-      await signIn(); // Will prompt if no token
+      await signIn(silent);
 
       const cloudState = await loadAppStateFromSheet();
       if (cloudState) {
