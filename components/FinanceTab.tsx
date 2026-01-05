@@ -29,6 +29,7 @@ interface FinanceAnalysis {
 export const FinanceTab: React.FC<FinanceTabProps> = ({ transactions, setTransactions }) => {
   const [activeTab, setActiveTab] = useState<Currency>(Currency.EUR);
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.LIST);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [isProfit, setIsProfit] = useState(false);
@@ -42,11 +43,12 @@ export const FinanceTab: React.FC<FinanceTabProps> = ({ transactions, setTransac
   const cryptoPairs = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "LINK/USDT", "PEPE/USDT"];
 
   const handleAddTransaction = () => {
-    if (!amount || !category) return;
+    if (!amount || !category || !selectedDate) return;
 
     if (editingTx) {
       setTransactions(prev => prev.map(tx => tx.id === editingTx.id ? {
         ...tx,
+        date: new Date(selectedDate).toISOString(),
         amount: parseFloat(amount),
         currency: activeTab,
         category,
@@ -57,7 +59,7 @@ export const FinanceTab: React.FC<FinanceTabProps> = ({ transactions, setTransac
     } else {
       const newTx: Transaction = {
         id: Date.now().toString(),
-        date: new Date().toISOString(),
+        date: new Date(selectedDate).toISOString(),
         amount: parseFloat(amount),
         currency: activeTab,
         category,
@@ -70,6 +72,7 @@ export const FinanceTab: React.FC<FinanceTabProps> = ({ transactions, setTransac
     setAmount('');
     setCategory('');
     setNotes('');
+    setSelectedDate(new Date().toISOString().split('T')[0]);
   };
 
   const handleDeleteTransaction = (id: string, e: React.MouseEvent) => {
@@ -84,6 +87,7 @@ export const FinanceTab: React.FC<FinanceTabProps> = ({ transactions, setTransac
     setCategory(tx.category);
     setIsProfit(tx.isProfit || false);
     setNotes(tx.notes || '');
+    setSelectedDate(new Date(tx.date).toISOString().split('T')[0]);
   };
 
   const handleCancelEdit = () => {
@@ -91,6 +95,7 @@ export const FinanceTab: React.FC<FinanceTabProps> = ({ transactions, setTransac
     setAmount('');
     setCategory('');
     setNotes('');
+    setSelectedDate(new Date().toISOString().split('T')[0]);
   };
 
   const handleDeepReview = async () => {
@@ -223,6 +228,15 @@ export const FinanceTab: React.FC<FinanceTabProps> = ({ transactions, setTransac
                 <Wallet size={16} className="text-white/30" /> Entry Logger
               </h3>
               <div className="space-y-6">
+                <div>
+                  <label className="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-2 px-1">Date</label>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={e => setSelectedDate(e.target.value)}
+                    className="w-full text-sm font-bold p-5 bg-black/40 border border-white/10 rounded-2xl outline-none text-white [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
+                  />
+                </div>
                 <div>
                   <label className="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-2 px-1">Amount ({activeTab})</label>
                   <input
