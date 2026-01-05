@@ -407,25 +407,26 @@ const syncTransactions = async (spreadsheetId: string, transactions: any[]) => {
         spreadsheetId,
         range: `${TRANSACTIONS_SHEET_NAME}!A1`,
         valueInputOption: 'USER_ENTERED',
-        resource: { values: [['Date', 'Type', 'Category', 'Amount (EUR)', 'Notes', 'ID']] }
+        resource: { values: [['Date', 'Currency', 'Category', 'Amount', 'Status', 'Notes', 'ID']] }
       });
     }
 
     // Format Data
     const rows = transactions.map((t: any) => [
       t.date,
-      t.type,
+      t.currency,
       t.category,
       t.amount,
+      t.currency === 'NTD' ? (t.isProfit ? 'PROFIT' : 'LOSS') : '-',
       t.notes || '',
       t.id
     ]);
 
-    // Clear old data (A2:F) to handle deletions
+    // Clear old data (A2:G) to handle deletions
     // @ts-ignore
     await gapi.client.sheets.spreadsheets.values.clear({
       spreadsheetId,
-      range: `${TRANSACTIONS_SHEET_NAME}!A2:F`
+      range: `${TRANSACTIONS_SHEET_NAME}!A2:G`
     });
 
     if (rows.length > 0) {
