@@ -7,9 +7,10 @@ interface SidebarProps {
   setCurrentTab: (tab: any) => void;
   onGoogleSync?: () => void;
   isSynced?: boolean;
+  onClose?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onGoogleSync, isSynced }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onGoogleSync, isSynced, onClose }) => {
   const menuItems = [
     { id: 'planning', label: 'Daily Plan', icon: Home },
     { id: 'reflection', label: 'Review', icon: BarChart2 },
@@ -33,10 +34,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onG
         {menuItems.map((item) => (
           <button
             key={item.id}
-            onClick={() => setCurrentTab(item.id)}
+            onClick={() => { setCurrentTab(item.id); onClose?.(); }}
             className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[13px] transition-all duration-300 ${currentTab === item.id
-                ? 'bg-white/20 text-white font-semibold border border-white/20 shadow-xl'
-                : 'text-white/60 hover:bg-white/10 hover:text-white'
+              ? 'bg-white/20 text-white font-semibold border border-white/20 shadow-xl'
+              : 'text-white/60 hover:bg-white/10 hover:text-white'
               }`}
           >
             <item.icon size={18} />
@@ -51,10 +52,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onG
           {subItems.map((item, idx) => (
             <button
               key={idx}
-              onClick={() => item.id && setCurrentTab(item.id)}
+              onClick={() => { if (item.id) setCurrentTab(item.id); onClose?.(); }}
               className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl text-[13px] transition-all duration-300 ${currentTab === item.id
-                  ? 'bg-white/20 text-white font-semibold border border-white/20 shadow-xl'
-                  : 'text-white/60 hover:bg-white/10 hover:text-white'
+                ? 'bg-white/20 text-white font-semibold border border-white/20 shadow-xl'
+                : 'text-white/60 hover:bg-white/10 hover:text-white'
                 }`}
             >
               <item.icon size={18} className={item.id === 'focus' && currentTab === 'focus' ? 'text-white' : ''} />

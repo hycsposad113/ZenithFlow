@@ -10,7 +10,7 @@ import { Sidebar } from './components/Sidebar';
 import { CalendarRail } from './components/CalendarRail';
 import { Login } from './components/Login';
 import { Task, Transaction, CalendarEvent, DailyStats, TaskType, TaskStatus, EventType } from './types';
-import { Home, BarChart2, TrendingUp, Calendar, Target, Timer, Clock } from 'lucide-react';
+import { Home, BarChart2, TrendingUp, Calendar, Target, Timer, Clock, Menu, X } from 'lucide-react';
 import { initGoogleAuth, signIn, fetchGoogleEvents, syncDailyStatsToSheet, saveAppStateToSheet, loadAppStateFromSheet } from './services/googleCalendarService';
 
 enum Tab {
@@ -51,6 +51,7 @@ const App: React.FC = () => {
   const [isTimelineOpen, setIsTimelineOpen] = useState(false);
   const [isGoogleSynced, setIsGoogleSynced] = useState(false);
   const [isRestoring, setIsRestoring] = useState(true); // Default to true to check first
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -302,6 +303,10 @@ const App: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isZ = e.key.toLowerCase() === 'z';
       const isMod = e.metaKey || e.ctrlKey;
+      if (e.key === 'Escape') {
+        setIsMobileMenuOpen(false);
+        setIsTimelineOpen(false);
+      }
       if (isZ && isMod && !e.shiftKey) {
         e.preventDefault();
         undo();
@@ -330,9 +335,27 @@ const App: React.FC = () => {
   ];
 
   return (
-    <div className="flex h-screen bg-transparent overflow-hidden md:p-[10px] animate-fade-in relative">
+    <div className="flex h-screen bg-transparent overflow-hidden md:p-[10px] animate-fade-in relative flex-col lg:flex-row">
+      {/* Mobile Header */}
+      <div className="lg:hidden flex items-center justify-between p-5 text-white shrink-0 bg-transparent relative z-50">
+        <div className="flex items-center gap-3">
+          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 bg-white/10 rounded-full text-white/80 active:scale-95 transition-transform"><Menu size={20} /></button>
+          <span className="font-bodoni font-bold text-xl">ZenithFlow</span>
+        </div>
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-[3000]">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+          <div className="absolute left-0 top-0 bottom-0 w-3/4 max-w-xs h-full animate-in slide-in-from-left duration-300 shadow-2xl flex">
+            <Sidebar currentTab={currentTab} setCurrentTab={setCurrentTab} onGoogleSync={syncGoogle} isSynced={isGoogleSynced} onClose={() => setIsMobileMenuOpen(false)} />
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-1 bg-black/5 md:rounded-[48px] overflow-hidden border-white/5 shadow-[0_0_40px_rgba(0,0,0,0.1)] relative">
-        <div className="hidden lg:block">
+        <div className="hidden lg:block h-full">
           <Sidebar currentTab={currentTab} setCurrentTab={setCurrentTab} onGoogleSync={syncGoogle} isSynced={isGoogleSynced} />
         </div>
 
