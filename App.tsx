@@ -10,7 +10,7 @@ import { Sidebar } from './components/Sidebar';
 import { CalendarRail } from './components/CalendarRail';
 import { Login } from './components/Login';
 import { Task, Transaction, CalendarEvent, DailyStats, TaskType, TaskStatus, EventType } from './types';
-import { Home, BarChart2, TrendingUp, Calendar, Target, Timer, Clock, Menu, X } from 'lucide-react';
+import { Home, BarChart2, TrendingUp, Calendar, Target, Timer, Clock, Menu, X, RefreshCw } from 'lucide-react';
 import { initGoogleAuth, signIn, fetchGoogleEvents, syncDailyStatsToSheet, saveAppStateToSheet, loadAppStateFromSheet } from './services/googleCalendarService';
 
 enum Tab {
@@ -84,30 +84,33 @@ const App: React.FC = () => {
 
   // --- Initialization & Google Sync ---
 
-  // Auto-restore session on mount or when authenticated
+  // Unify Google initialization and session restoration
   useEffect(() => {
     if (!isAuthenticated) {
       setIsRestoring(false);
       return;
     }
 
-    const tryRestoreSession = async () => {
-      const wasSynced = localStorage.getItem('is_google_synced') === 'true';
-      if (wasSynced) {
-        console.log("Restoring Google Session...");
-        try {
-          // Initialize GAPI and restore
+    const initializeAndSync = async () => {
+      try {
+        // 1. Load GAPI/GSI scripts and init
+        await initGoogleAuth();
+
+        // 2. Try to restore if previously synced
+        const wasSynced = localStorage.getItem('is_google_synced') === 'true';
+        if (wasSynced) {
+          console.log("ZenithFlow: Attempting auto-sync...");
           await syncGoogle(true);
-        } catch (e) {
-          console.warn("Session restore failed", e);
-          setIsGoogleSynced(false);
-          localStorage.removeItem('is_google_synced');
         }
+      } catch (e) {
+        console.warn("ZenithFlow: Init/Restore failed", e);
+        setIsGoogleSynced(false);
+      } finally {
+        setIsRestoring(false);
       }
-      setIsRestoring(false);
     };
 
-    tryRestoreSession();
+    initializeAndSync();
   }, [isAuthenticated]);
 
   const syncGoogle = async (silent = false) => {
@@ -170,21 +173,20 @@ const App: React.FC = () => {
       });
 
       setIsGoogleSynced(true);
-      localStorage.setItem('is_google_synced', 'true'); // Persist persistence
+      localStorage.setItem('is_google_synced', 'true');
 
     } catch (error) {
       console.error("Google Sync Failed:", error);
-      if (!silent) alert("Failed to sync with Google. Please re-authenticate.");
+      // Only alert if we ARE NOT in silent mode (initial restore)
+      if (!silent) {
+        alert("Failed to sync with Google. Please re-authenticate.");
+      }
       setIsGoogleSynced(false);
-      localStorage.removeItem('is_google_synced');
+      // Don't remove 'is_google_synced' here, so user can retry manually
     }
   };
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      initGoogleAuth();
-    }
-  }, [isAuthenticated]);
+
 
   // Auto-save to cloud when tasks, routine, dailyStats, dailyAnalyses, or transactions change
   useEffect(() => {
@@ -333,6 +335,15 @@ const App: React.FC = () => {
 
   return (
     <div className="flex h-screen bg-transparent overflow-hidden md:p-[10px] animate-fade-in relative flex-col lg:flex-row">
+      {isRestoring && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-md text-white">
+          <div className="flex flex-col items-center gap-4">
+            <RefreshCw className="animate-spin text-white/60" size={32} />
+            <p className="font-bodoni text-xl tracking-widest opacity-80">ZenithFlow</p>
+            <p className="text-[10px] uppercase tracking-[0.3em] opacity-40">Restoring cloud session...</p>
+          </div>
+        </div>
+      )}
       {/* Mobile Header */}
       <div className="lg:hidden flex items-center justify-between p-5 text-white shrink-0 bg-transparent relative z-50">
         <div className="flex items-center gap-3">

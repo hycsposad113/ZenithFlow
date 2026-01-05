@@ -98,16 +98,12 @@ export const signIn = () => {
 
     // 如果已經有 token 就不用重複跳視窗，除非失效
     // @ts-ignore
-    // @ts-ignore
     const token = gapi.client.getToken();
     if (token) {
-      // We have a token, check validity? simpler to just try using it.
-      // Or if we need fresh access, requestAccessToken({prompt: ''})
-      // tokenClient.requestAccessToken({ prompt: '' });
-      resolve(); // Just resolve immediately if we think we are signed in.
-      // The caller will try to fetch events. If that fails (401), we handle re-auth.
+      resolve();
     } else {
-      tokenClient.requestAccessToken({ prompt: '' });
+      // Use prompt: 'none' for silent sync on refresh
+      tokenClient.requestAccessToken({ prompt: 'none' });
     }
   });
 };
