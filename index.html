@@ -1,110 +1,127 @@
-
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>ZenithFlow</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <!-- Google APIs -->
-    <script async defer src="https://apis.google.com/js/api.js"></script>
-    <script async defer src="https://accounts.google.com/gsi/client"></script>
-    <style>
-      body {
-        font-family: 'Inter', sans-serif;
-        background-color: #c0373f;
-        color: #ffffff;
-        overflow: hidden;
-        font-size: 13px;
-        min-height: 100vh;
-        /* Handle iOS safe areas */
-        padding-top: env(safe-area-inset-top);
-        padding-bottom: env(safe-area-inset-bottom);
-        padding-left: env(safe-area-inset-left);
-        padding-right: env(safe-area-inset-right);
-      }
-      
-      .font-bodoni {
-        font-family: 'Bodoni Moda', serif;
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>ZenithFlow</title>
+  <link rel="icon" type="image/png" href="/ZenithFlow/favicon.png" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Inter:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <!-- Google APIs -->
+  <script async defer src="https://apis.google.com/js/api.js"></script>
+  <script async defer src="https://accounts.google.com/gsi/client"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #c0373f;
+      color: #ffffff;
+      overflow: hidden;
+      font-size: 13px;
+      min-height: 100vh;
+      /* Handle iOS safe areas */
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+
+    .font-bodoni {
+      font-family: 'Bodoni Moda', serif;
+    }
+
+    /* Matte Translucent Effect */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.15);
+    }
+
+    .glass-card-dark {
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Floating Header Style */
+    .floating-title {
+      text-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      letter-spacing: 0.04em;
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 10px;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
       }
 
-      /* Matte Translucent Effect */
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-fade-in {
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+
+    /* Form Input styling for contrast - Removed !important from background/border to allow overrides */
+    input,
+    select,
+    textarea {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #ffffff !important;
+      -webkit-text-fill-color: #ffffff !important;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: rgba(255, 255, 255, 0.4) !important;
+      -webkit-text-fill-color: rgba(255, 255, 255, 0.4) !important;
+    }
+
+    /* Reset auto-fill styles which often cause white backgrounds */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    textarea:-webkit-autofill,
+    textarea:-webkit-autofill:hover,
+    textarea:-webkit-autofill:focus,
+    select:-webkit-autofill,
+    select:-webkit-autofill:hover,
+    select:-webkit-autofill:focus {
+      -webkit-text-fill-color: #ffffff !important;
+      -webkit-box-shadow: 0 0 0px 1000px #2a0b0d inset !important;
+      transition: background-color 5000s ease-in-out 0s;
+    }
+
+    /* Custom mobile overrides */
+    @media (max-width: 768px) {
       .glass-card {
-        background: rgba(255, 255, 255, 0.12);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.15);
+        backdrop-filter: blur(8px);
       }
-
-      .glass-card-dark {
-        background: rgba(0, 0, 0, 0.45);
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-      }
-
-      /* Floating Header Style */
-      .floating-title {
-        text-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-        letter-spacing: 0.04em;
-      }
-
-      ::-webkit-scrollbar {
-        width: 4px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.25);
-        border-radius: 10px;
-      }
-      
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(8px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      .animate-fade-in {
-        animation: fadeIn 0.4s ease-out forwards;
-      }
-
-      /* Form Input styling for contrast - Removed !important from background/border to allow overrides */
-      input, select, textarea {
-        background: rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #ffffff !important;
-        -webkit-text-fill-color: #ffffff !important;
-      }
-      input::placeholder, textarea::placeholder {
-        color: rgba(255, 255, 255, 0.4) !important;
-        -webkit-text-fill-color: rgba(255, 255, 255, 0.4) !important;
-      }
-      
-      /* Reset auto-fill styles which often cause white backgrounds */
-      input:-webkit-autofill,
-      input:-webkit-autofill:hover, 
-      input:-webkit-autofill:focus,
-      textarea:-webkit-autofill,
-      textarea:-webkit-autofill:hover,
-      textarea:-webkit-autofill:focus,
-      select:-webkit-autofill,
-      select:-webkit-autofill:hover,
-      select:-webkit-autofill:focus {
-        -webkit-text-fill-color: #ffffff !important;
-        -webkit-box-shadow: 0 0 0px 1000px #2a0b0d inset !important;
-        transition: background-color 5000s ease-in-out 0s;
-      }
-
-      /* Custom mobile overrides */
-      @media (max-width: 768px) {
-        .glass-card {
-           backdrop-filter: blur(8px);
-        }
-      }
-    </style>
-    <script type="importmap">
+    }
+  </style>
+  <script type="importmap">
     {
       "imports": {
         "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
@@ -116,9 +133,11 @@
       }
     }
     </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="index.tsx"></script>
-  </body>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="index.tsx"></script>
+</body>
+
 </html>
