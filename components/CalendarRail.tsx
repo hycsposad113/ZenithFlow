@@ -296,6 +296,21 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
             } catch (e) { console.debug("Auto-push skipped", e); }
           }
         }
+      } else if (state.id && state.hasMoved) {
+        // Sync to Google Calendar after drag/resize finishes
+        const { tasks, events } = stateRef.current;
+        const item = state.isEvent ? events.find(e => e.id === state.id) : tasks.find(t => t.id === state.id);
+        if (item && item.googleEventId) {
+          const startTime = state.isEvent ? (item as CalendarEvent).startTime : (item as Task).scheduledTime || '09:00';
+          updateGoogleEvent(
+            item.googleEventId,
+            item.title,
+            item.date,
+            startTime,
+            item.durationMinutes
+          ).catch(console.error);
+        }
+        setActiveDrag(null);
       } else if (state.id) {
         if (!state.hasMoved) {
           setEditingId({ id: state.id, isEvent: state.isEvent });
@@ -346,41 +361,11 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
   };
 
   const updateItem = (id: string, isEvent: boolean, updates: any) => {
-    const { setEvents, setTasks, tasks, events } = stateRef.current;
+    const { setEvents, setTasks } = stateRef.current;
     if (isEvent && setEvents) {
-      setEvents(prev => prev.map(ev => {
-        if (ev.id === id) {
-          const updated = { ...ev, ...updates };
-          if (updated.googleEventId) {
-            updateGoogleEvent(
-              updated.googleEventId,
-              updated.title,
-              updated.date,
-              updated.startTime,
-              updated.durationMinutes
-            ).catch(console.error);
-          }
-          return updated;
-        }
-        return ev;
-      }));
+      setEvents(prev => prev.map(ev => ev.id === id ? { ...ev, ...updates } : ev));
     } else if (setTasks) {
-      setTasks(prev => prev.map(t => {
-        if (t.id === id) {
-          const updated = { ...t, ...updates };
-          if (updated.googleEventId) {
-            updateGoogleEvent(
-              updated.googleEventId,
-              updated.title,
-              updated.date,
-              updated.scheduledTime || '09:00',
-              updated.durationMinutes
-            ).catch(console.error);
-          }
-          return updated;
-        }
-        return t;
-      }));
+      setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
     }
   };
 
@@ -560,7 +545,24 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
 
             <div className="pt-2 flex gap-3">
               <button onClick={(e) => deleteItem(editingData.id, !editingData.isTask, e)} className="p-3 text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-xl transition-all border border-red-500/20"><Trash2 size={16} /></button>
-              <Button onClick={() => setEditingId(null)} variant="primary" className="flex-1">Save</Button>
+              <Button
+                onClick={() => {
+                  if (editingData && editingData.googleEventId) {
+                    updateGoogleEvent(
+                      editingData.googleEventId,
+                      editingData.title,
+                      editingData.date,
+                      editingData.startTime,
+                      editingData.durationMinutes
+                    ).catch(console.error);
+                  }
+                  setEditingId(null);
+                }}
+                variant="primary"
+                className="flex-1"
+              >
+                Save
+              </Button>
             </div>
           </div>
         </div>

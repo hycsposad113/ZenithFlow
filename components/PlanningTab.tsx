@@ -325,27 +325,9 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
                   value={editingItem.title}
                   onChange={(e) => {
                     if (editingId?.isEvent) {
-                      setEvents(prev => prev.map(ev => {
-                        if (ev.id === editingId.id) {
-                          const updated = { ...ev, title: e.target.value };
-                          if (updated.googleEventId) {
-                            updateGoogleEvent(updated.googleEventId, updated.title, updated.date, updated.startTime, updated.durationMinutes).catch(console.error);
-                          }
-                          return updated;
-                        }
-                        return ev;
-                      }));
+                      setEvents(prev => prev.map(ev => ev.id === editingId.id ? { ...ev, title: e.target.value } : ev));
                     } else {
-                      setTasks(prev => prev.map(t => {
-                        if (t.id === editingId?.id) {
-                          const updated = { ...t, title: e.target.value };
-                          if (updated.googleEventId) {
-                            updateGoogleEvent(updated.googleEventId, updated.title, updated.date, updated.scheduledTime || '09:00', updated.durationMinutes).catch(console.error);
-                          }
-                          return updated;
-                        }
-                        return t;
-                      }));
+                      setTasks(prev => prev.map(t => t.id === editingId?.id ? { ...t, title: e.target.value } : t));
                     }
                   }}
                 />
@@ -355,27 +337,9 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
                   <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2 block">Start</label>
                   <input type="time" className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm font-semibold text-white outline-none" value={editingId?.isEvent ? (editingItem as CalendarEvent).startTime : (editingItem as Task).scheduledTime} onChange={(e) => {
                     if (editingId?.isEvent) {
-                      setEvents(prev => prev.map(ev => {
-                        if (ev.id === editingId.id) {
-                          const updated = { ...ev, startTime: e.target.value };
-                          if (updated.googleEventId) {
-                            updateGoogleEvent(updated.googleEventId, updated.title, updated.date, updated.startTime, updated.durationMinutes).catch(console.error);
-                          }
-                          return updated;
-                        }
-                        return ev;
-                      }));
+                      setEvents(prev => prev.map(ev => ev.id === editingId.id ? { ...ev, startTime: e.target.value } : ev));
                     } else {
-                      setTasks(prev => prev.map(t => {
-                        if (t.id === editingId?.id) {
-                          const updated = { ...t, scheduledTime: e.target.value };
-                          if (updated.googleEventId) {
-                            updateGoogleEvent(updated.googleEventId, updated.title, updated.date, updated.scheduledTime || '09:00', updated.durationMinutes).catch(console.error);
-                          }
-                          return updated;
-                        }
-                        return t;
-                      }));
+                      setTasks(prev => prev.map(t => t.id === editingId?.id ? { ...t, scheduledTime: e.target.value } : t));
                     }
                   }}
                   />
@@ -386,27 +350,9 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
                     const start = editingId?.isEvent ? (editingItem as CalendarEvent).startTime : (editingItem as Task).scheduledTime || '00:00';
                     const newDuration = calculateDuration(start, e.target.value);
                     if (editingId?.isEvent) {
-                      setEvents(prev => prev.map(ev => {
-                        if (ev.id === editingId.id) {
-                          const updated = { ...ev, durationMinutes: newDuration };
-                          if (updated.googleEventId) {
-                            updateGoogleEvent(updated.googleEventId, updated.title, updated.date, updated.startTime, updated.durationMinutes).catch(console.error);
-                          }
-                          return updated;
-                        }
-                        return ev;
-                      }));
+                      setEvents(prev => prev.map(ev => ev.id === editingId.id ? { ...ev, durationMinutes: newDuration } : ev));
                     } else {
-                      setTasks(prev => prev.map(t => {
-                        if (t.id === editingId?.id) {
-                          const updated = { ...t, durationMinutes: newDuration };
-                          if (updated.googleEventId) {
-                            updateGoogleEvent(updated.googleEventId, updated.title, updated.date, updated.scheduledTime || '09:00', updated.durationMinutes).catch(console.error);
-                          }
-                          return updated;
-                        }
-                        return t;
-                      }));
+                      setTasks(prev => prev.map(t => t.id === editingId?.id ? { ...t, durationMinutes: newDuration } : t));
                     }
                   }}
                   />
@@ -414,7 +360,24 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
               </div>
               <div className="pt-4 flex gap-4">
                 <button className="rounded-2xl flex-1 bg-red-500/20 text-red-100 border border-red-500/30 font-bold tracking-widest text-[10px] uppercase py-4" onClick={(e) => deleteItem(editingId!.id, editingId!.isEvent, e)}>Delete</button>
-                <button className="flex-1 rounded-2xl bg-white text-[#bf363e] font-bold tracking-widest text-[10px] uppercase py-4 shadow-xl hover:bg-white/90" onClick={() => setEditingId(null)}>Save</button>
+                <button
+                  className="flex-1 rounded-2xl bg-white text-[#bf363e] font-bold tracking-widest text-[10px] uppercase py-4 shadow-xl hover:bg-white/90"
+                  onClick={() => {
+                    if (editingItem && editingItem.googleEventId) {
+                      const start = editingId?.isEvent ? (editingItem as CalendarEvent).startTime : (editingItem as Task).scheduledTime || '09:00';
+                      updateGoogleEvent(
+                        editingItem.googleEventId,
+                        editingItem.title,
+                        editingItem.date,
+                        start,
+                        editingItem.durationMinutes
+                      ).catch(console.error);
+                    }
+                    setEditingId(null);
+                  }}
+                >
+                  Save
+                </button>
               </div>
             </div>
           </div>
