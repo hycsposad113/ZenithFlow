@@ -77,29 +77,72 @@ const App: React.FC = () => {
 
   // ... (keep syncGoogle and useEffect) ...
 
-  const syncGoogle = async () => {
+  // --- Initialization & Google Sync ---
+
+  // Auto-restore session on mount
+  useEffect(() => {
+    const tryRestoreSession = async () => {
+      const wasSynced = localStorage.getItem('is_google_synced') === 'true';
+      if (wasSynced) {
+        console.log("Restoring Google Session...");
+        try {
+          // Initialize GAPI first
+          await initGoogleAuth();
+
+          // Try to silent sign-in or check existing token
+          // For simplicity, we just trigger the full sync flow but without prompt if token exists
+          // The signIn function handles token check. 
+          // However, user might need to re-click if token expired. 
+          // Let's try to just run syncGoogle logic.
+
+          // We'll just call the same logic as syncGoogle but handle errors gracefully
+          // To avoid multiple prompts, check token first?
+          // initGoogleAuth sets up the client.
+
+          // Let's call a specialized restore function or just rely on manual sync if token is gone.
+          // Better UX: Try to fetch. If 401, then set synced to false.
+          await syncGoogle(true); // true = silent mode
+        } catch (e) {
+          console.warn("Session restore failed", e);
+          setIsGoogleSynced(false);
+          localStorage.removeItem('is_google_synced');
+        }
+      }
+    };
+
+    // delaying slightly to ensure other effects run? no need.
+    tryRestoreSession();
+  }, []);
+
+  const syncGoogle = async (silent = false) => {
     try {
-      await initGoogleAuth(); // Ensure auth is initialized before sign-in
-      await signIn();
+      if (!silent) console.log("Starting Google Sync...");
+      await initGoogleAuth();
+      await signIn(); // Will prompt if no token
+
       const cloudState = await loadAppStateFromSheet();
       if (cloudState) {
-        console.log("Synced from Cloud:", cloudState);
+        if (!silent) console.log("Synced from Cloud:", cloudState);
         if (cloudState.tasks) setTasks(cloudState.tasks);
         if (cloudState.routine) setRoutine(cloudState.routine);
         if (cloudState.dailyStats) setDailyStats(cloudState.dailyStats);
         if (cloudState.dailyAnalyses) setDailyAnalyses(cloudState.dailyAnalyses);
-        alert("Synced from Cloud!");
+        if (!silent) {
+          // Optional: toast or less intrusive notification
+        }
       }
 
       const googleEvents = await fetchGoogleEvents();
-      setEvents(prev => {
-        const filtered = prev.filter(e => !e.googleEventId);
-        return [...filtered, ...googleEvents];
-      });
+      setEvents(googleEvents); // Replace tasks with fresh calendar data
+
       setIsGoogleSynced(true);
-    } catch (e) {
-      console.error("Google Sync Failed", e);
-      alert("Failed to sync with Google. Check console for details.");
+      localStorage.setItem('is_google_synced', 'true'); // Persist persistence
+
+    } catch (error) {
+      console.error("Google Sync Failed:", error);
+      if (!silent) alert("Failed to sync with Google. Please re-authenticate.");
+      setIsGoogleSynced(false);
+      localStorage.removeItem('is_google_synced');
     }
   };
 
