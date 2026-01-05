@@ -457,16 +457,26 @@ const App: React.FC = () => {
                     const total = todayTasks.length;
                     const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
+                    const detailedReflections = todayTasks
+                      .filter(t => t.reflection && t.reflection.trim().length > 0)
+                      .map(t => `[${t.title}]: ${t.reflection}`)
+                      .join('\n');
+
                     syncDailyStatsToSheet(today, {
                       wakeTime: currentStats.wakeTime || routine.wake,
                       meditation: currentStats.meditation ?? routine.meditation,
                       exercise: currentStats.exercise ?? routine.exercise,
                       focusMinutes: currentStats.focusMinutes,
                       completionRate: rate
-                    }, newAnalysis ? (newAnalysis as any) : {
-                      reflection: '', insight: '', concept: '', actionItem: ''
+                    }, newAnalysis ? {
+                      ...newAnalysis,
+                      reflection: detailedReflections // Add user reflections to the record
+                    } : {
+                      reflection: detailedReflections, // Preserve user reflections even if deleted
+                      insight: '', concept: '', actionItem: ''
                     }).then(() => console.log('Synced (Update/Delete) to Sheet')).catch(e => console.error(e));
                   }}
+                  dailyStats={dailyStats}
                   knowledge={[]}
                 />
               </div>

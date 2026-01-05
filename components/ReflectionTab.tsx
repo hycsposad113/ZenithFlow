@@ -10,10 +10,11 @@ interface ReflectionTabProps {
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   analysis: { insight: string; bookReference: string; concept: string; actionItem: string } | null;
   setAnalysis: React.Dispatch<React.SetStateAction<{ insight: string; bookReference: string; concept: string; actionItem: string } | null>>;
+  dailyStats: Record<string, any>;
   knowledge: KnowledgeItem[];
 }
 
-export const ReflectionTab: React.FC<ReflectionTabProps> = ({ tasks, setTasks, analysis, setAnalysis, knowledge }) => {
+export const ReflectionTab: React.FC<ReflectionTabProps> = ({ tasks, setTasks, analysis, setAnalysis, dailyStats, knowledge }) => {
   const [loading, setLoading] = useState(false);
 
   const handleUpdateActual = (id: string, mins: number) => {
@@ -26,8 +27,10 @@ export const ReflectionTab: React.FC<ReflectionTabProps> = ({ tasks, setTasks, a
 
   const runAnalysis = async () => {
     setLoading(true);
+    const today = new Date().toISOString().split('T')[0];
+    const todaysStats = dailyStats[today]; // Pass undefined if missing, service handles it
     try {
-      const result = await analyzeDailyReflection(tasks, knowledge);
+      const result = await analyzeDailyReflection(tasks, knowledge, todaysStats);
       setAnalysis(result);
     } catch (e) {
       console.error(e);

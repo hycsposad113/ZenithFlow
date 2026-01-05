@@ -146,9 +146,16 @@ export const generateDailyRitual = async (currentTasks: Task[], events: Calendar
   return parseJSON(response.text || "{}");
 };
 
-export const analyzeDailyReflection = async (tasks: Task[], knowledgeBase: KnowledgeItem[] = []) => {
+export const analyzeDailyReflection = async (tasks: Task[], knowledgeBase: KnowledgeItem[] = [], dailyStats?: DailyStats) => {
   const prompt = `
     Analyze Jack's day:
+    Context (Stats):
+    - Wake Up Time: ${dailyStats?.wakeTime || "N/A"}
+    - Focus Minutes (Deep Work): ${dailyStats?.focusMinutes || 0}
+    - Completion Rate: ${dailyStats?.completionRate || 0}%
+    - Routine: Meditation=${dailyStats?.meditation ? 'YES' : 'NO'}, Exercise=${dailyStats?.exercise ? 'YES' : 'NO'}
+
+    Task Breakdown:
     ${JSON.stringify(tasks.map(t => ({
     title: t.title,
     planned: t.durationMinutes,
@@ -176,6 +183,8 @@ export interface DailyStats {
   completionRate: number; // 0-100
   focusMinutes: number;
   wakeTime: string;
+  meditation?: boolean;
+  exercise?: boolean;
 }
 
 export const synthesizePeriodPerformance = async (insights: any[], period: 'Week' | 'Month', stats?: DailyStats[]) => {
