@@ -182,24 +182,24 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
       <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center glass-card p-6 rounded-3xl border border-white/20">
         <div className="flex flex-col">
           <span className="text-[10px] font-bold text-white/50 tracking-widest">{dateString}</span>
-          <div className="flex items-center gap-4">
-            <button onClick={() => changeDate(-1)} className="p-1 hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
-            <h2 className="text-3xl font-bodoni font-bold text-white leading-none floating-title w-[140px] text-center">{weekday}</h2>
-            <button onClick={() => changeDate(1)} className="p-1 hover:bg-white/10 rounded-full transition-colors"><ChevronRight size={24} /></button>
-          </div>
+          <h2 className="text-3xl font-bodoni font-bold text-white leading-none floating-title w-[140px] text-left">{weekday}</h2>
         </div>
-        <button
-          onClick={handleMorningRitual}
-          disabled={loading}
-          className="w-full md:w-auto rounded-full px-8 text-[12px] h-12 md:h-10 bg-white text-[#bf363f] font-bold hover:bg-white/90 flex items-center justify-center gap-2 shadow-xl transition-all disabled:opacity-50"
-        >
-          {loading ? (
-            <div className="w-4 h-4 border-2 border-[#bf363e]/30 border-t-[#bf363e] rounded-full animate-spin" />
-          ) : (
-            <Zap size={14} className="fill-current" />
-          )}
-          Daily Ritual
-        </button>
+        <div className="flex items-center gap-4">
+          <button onClick={() => changeDate(-1)} className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+          <button onClick={() => changeDate(1)} className="p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors"><ChevronRight size={24} /></button>
+          <button
+            onClick={handleMorningRitual}
+            disabled={loading}
+            className="w-full md:w-auto rounded-full px-8 text-[12px] h-12 md:h-12 bg-white text-[#bf363f] font-bold hover:bg-white/90 flex items-center justify-center gap-2 shadow-xl transition-all disabled:opacity-50"
+          >
+            {loading ? (
+              <div className="w-4 h-4 border-2 border-[#bf363e]/30 border-t-[#bf363e] rounded-full animate-spin" />
+            ) : (
+              <Zap size={14} className="fill-current" />
+            )}
+            Daily Ritual
+          </button>
+        </div>
       </div>
 
       {/* Today's Schedule Grid */}
