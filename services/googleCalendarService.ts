@@ -221,6 +221,21 @@ export const pushToGoogleCalendar = async (title: string, date: string, startTim
     throw err;
   }
 };
+// --- Delete Event ---
+export const deleteGoogleEvent = async (eventId: string) => {
+  try {
+    // @ts-ignore
+    await gapi.client.calendar.events.delete({
+      'calendarId': 'primary',
+      'eventId': eventId
+    });
+    console.log(`Deleted Google Event: ${eventId}`);
+    return true;
+  } catch (err) {
+    console.error("Delete Event Error:", err);
+    return false; // Might be already deleted or permission issue
+  }
+};
 
 // --- Google Sheets Integration ---
 

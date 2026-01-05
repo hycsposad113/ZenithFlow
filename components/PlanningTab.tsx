@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Task, TaskType, TaskStatus, KnowledgeItem, CalendarEvent, EventType } from '../types';
 import { Button } from './Button';
 import { generateMorningPlan } from '../services/geminiService';
+import { deleteGoogleEvent } from '../services/googleCalendarService';
 import {
   Zap, Trash2, CheckCircle2, Circle, X, Clock, Sunrise, Brain, Dumbbell
 } from 'lucide-react';
@@ -117,7 +118,13 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
     if (e) e.stopPropagation();
     if (isEvent) {
       setEvents(prev => prev.filter(ev => ev.id !== id));
+      // Delete from Google Calendar
+      deleteGoogleEvent(id).catch(console.error);
     } else {
+      const taskToDelete = tasks.find(t => t.id === id);
+      if (taskToDelete?.googleEventId) {
+        deleteGoogleEvent(taskToDelete.googleEventId).catch(console.error);
+      }
       setTasks(prev => prev.filter(t => t.id !== id));
     }
     setEditingId(null);

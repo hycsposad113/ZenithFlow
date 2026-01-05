@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Task, TaskType, TaskStatus, CalendarEvent, EventType } from '../types';
 import { Button } from './Button';
 import { Trash2, X, Globe } from 'lucide-react';
-import { pushToGoogleCalendar } from '../services/googleCalendarService';
+import { pushToGoogleCalendar, deleteGoogleEvent } from '../services/googleCalendarService';
 
 interface CalendarRailProps {
   tasks: Task[];
@@ -170,10 +170,15 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
 
   const deleteItem = (id: string, isEvent: boolean, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    const { setEvents, setTasks } = stateRef.current;
+    const { setEvents, setTasks, tasks } = stateRef.current;
     if (isEvent && setEvents) {
       setEvents(prev => prev.filter(ev => ev.id !== id));
+      deleteGoogleEvent(id).catch(console.error);
     } else if (setTasks) {
+      const taskToDelete = tasks.find(t => t.id === id);
+      if (taskToDelete?.googleEventId) {
+        deleteGoogleEvent(taskToDelete.googleEventId).catch(console.error);
+      }
       setTasks(prev => prev.filter(t => t.id !== id));
     }
     setEditingId(null);

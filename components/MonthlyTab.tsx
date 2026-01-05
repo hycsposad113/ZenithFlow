@@ -50,6 +50,24 @@ export const MonthlyTab: React.FC<MonthlyTabProps> = ({ events, setEvents, tasks
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const calculateEndTime = (start: string, duration: number) => {
+    if (!start) return '';
+    const [h, m] = start.split(':').map(Number);
+    const total = (h || 0) * 60 + (m || 0) + duration;
+    const eh = Math.floor(total / 60) % 24;
+    const em = total % 60;
+    return `${eh.toString().padStart(2, '0')}:${em.toString().padStart(2, '0')}`;
+  };
+
+  const calculateDuration = (start: string, end: string) => {
+    if (!start || !end) return 60;
+    const [sh, sm] = start.split(':').map(Number);
+    const [eh, em] = end.split(':').map(Number);
+    let diff = ((eh || 0) * 60 + (em || 0)) - ((sh || 0) * 60 + (sm || 0));
+    if (diff <= 0) diff += 24 * 60;
+    return diff;
+  };
+
   const handleSynthesizeMonth = async () => {
     if (weeklyInsightList.length === 0) return;
     setLoadingSynthesis(true);
@@ -127,7 +145,7 @@ export const MonthlyTab: React.FC<MonthlyTabProps> = ({ events, setEvents, tasks
               key={d}
               className={`p-4 border-r border-b border-white/5 hover:bg-white/10 transition-all cursor-pointer min-h-[120px] md:min-h-[140px] flex flex-col group ${isToday ? 'bg-white/10 ring-1 ring-inset ring-white/20' : ''}`}
               onClick={() => { setSelectedDate(dateStr); setIsCreateModalOpen(true); }}
-              onDoubleClick={(e) => { e.stopPropagation(); setDayViewDate(dateStr); }}
+              onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setDayViewDate(dateStr); }}
             >
               <span className={`text-[13px] font-bold self-end mb-3 transition-colors ${isToday ? 'bg-white text-[#c0373f] px-2.5 py-1 rounded-full shadow-lg scale-110' : 'text-white/30 group-hover:text-white/60'}`}>
                 {d}
@@ -254,12 +272,15 @@ export const MonthlyTab: React.FC<MonthlyTabProps> = ({ events, setEvents, tasks
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-white/30 uppercase tracking-[0.2em] mb-3 block">Duration (min)</label>
+                  <label className="text-[11px] font-bold text-white/30 uppercase tracking-[0.2em] mb-3 block">End Time</label>
                   <input
-                    type="number"
+                    type="time"
                     className="w-full bg-black/40 border border-white/10 rounded-3xl px-6 py-5 text-sm font-medium text-white outline-none"
-                    value={formData.durationMinutes}
-                    onChange={e => setFormData({ ...formData, durationMinutes: parseInt(e.target.value) || 0 })}
+                    value={calculateEndTime(formData.scheduledTime, formData.durationMinutes)}
+                    onChange={e => {
+                      const newDur = calculateDuration(formData.scheduledTime, e.target.value);
+                      setFormData({ ...formData, durationMinutes: newDur });
+                    }}
                   />
                 </div>
               </div>
