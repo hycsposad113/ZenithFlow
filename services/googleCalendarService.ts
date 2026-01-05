@@ -5,7 +5,8 @@ import { CalendarEvent, EventType } from "../types";
 const CLIENT_ID = "REMOVED_REDACTED_ID";
 const DISCOVERY_DOCS = [
   "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest",
-  "https://sheets.googleapis.com/$discovery/rest?version=v4"
+  "https://sheets.googleapis.com/$discovery/rest?version=v4",
+  "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"
 ];
 const SCOPES = "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file";
 
