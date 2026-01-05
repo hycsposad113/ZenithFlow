@@ -30,7 +30,10 @@ jobs:
     - name: Build
       run: npm run build
       env:
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        VITE_GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        VITE_APP_USER: ${{ secrets.APP_USER }}
+        VITE_APP_PASS: ${{ secrets.APP_PASS }}
+        VITE_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
 
     - name: Deploy
       uses: peaceiris/actions-gh-pages@v3
