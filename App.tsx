@@ -92,11 +92,12 @@ const App: React.FC = () => {
     }
 
     const initializeAndSync = async () => {
-      try {
-        // 1. Load GAPI/GSI scripts and init
-        await initGoogleAuth();
+      const safetyTimeout = setTimeout(() => {
+        setIsRestoring(false);
+      }, 15000);
 
-        // 2. Try to restore if previously synced
+      try {
+        await initGoogleAuth();
         const wasSynced = localStorage.getItem('is_google_synced') === 'true';
         if (wasSynced) {
           console.log("ZenithFlow: Attempting auto-sync...");
@@ -106,6 +107,7 @@ const App: React.FC = () => {
         console.warn("ZenithFlow: Init/Restore failed", e);
         setIsGoogleSynced(false);
       } finally {
+        clearTimeout(safetyTimeout);
         setIsRestoring(false);
       }
     };
