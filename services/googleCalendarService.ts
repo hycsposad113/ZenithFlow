@@ -7,7 +7,7 @@ const DISCOVERY_DOCS = [
   "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest",
   "https://sheets.googleapis.com/$discovery/rest?version=v4"
 ];
-const SCOPES = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/spreadsheets";
+const SCOPES = "https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file";
 
 let tokenClient: any;
 let gapiInited = false;
