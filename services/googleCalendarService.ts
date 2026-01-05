@@ -249,7 +249,18 @@ const SHEET_NAME = "DailyLogs";
 export const findOrCreateZenithFlowSheet = async (): Promise<string> => {
   // 1. Check local storage first
   let spreadsheetId = localStorage.getItem('zenithflow_sheet_id');
-  if (spreadsheetId) return spreadsheetId;
+  if (spreadsheetId) {
+    try {
+      // Verify it exists AND we have access
+      // @ts-ignore
+      await gapi.client.sheets.spreadsheets.get({ spreadsheetId });
+      return spreadsheetId;
+    } catch (e) {
+      console.warn("Cached spreadsheet ID invalid or inaccessible, searching/creating new...", e);
+      localStorage.removeItem('zenithflow_sheet_id');
+      spreadsheetId = null; // Reset to force search
+    }
+  }
 
   try {
     // 2. Search Drive for file
