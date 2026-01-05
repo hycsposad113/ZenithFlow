@@ -306,11 +306,13 @@ const App: React.FC = () => {
       [today]: {
         date: today,
         wakeTime: routine.wake,
+        meditation: routine.meditation,
+        exercise: routine.exercise,
         focusMinutes: prev[today]?.focusMinutes || 0,
-        completionRate: prev[today]?.completionRate || 0 // Re-calc elsewhere if needed, or derived
+        completionRate: prev[today]?.completionRate || 0
       }
     }));
-  }, [routine.wake]);
+  }, [routine]);
 
   // Wrapper for Focus Updates to track daily delta
   const updateFocusMinutes = (callback: React.SetStateAction<number>) => {
@@ -415,6 +417,8 @@ const App: React.FC = () => {
                 setRoutine={setUndoableRoutine}
                 analysis={analysis}
                 dailyAnalyses={dailyAnalyses}
+                dailyStats={dailyStats}
+                setDailyStats={setDailyStats}
                 knowledge={[]}
                 totalFocusMinutes={totalFocusMinutes}
               />
@@ -454,7 +458,9 @@ const App: React.FC = () => {
                     const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
                     syncDailyStatsToSheet(today, {
-                      wakeTime: routine.wake,
+                      wakeTime: currentStats.wakeTime || routine.wake,
+                      meditation: currentStats.meditation ?? routine.meditation,
+                      exercise: currentStats.exercise ?? routine.exercise,
                       focusMinutes: currentStats.focusMinutes,
                       completionRate: rate
                     }, newAnalysis ? (newAnalysis as any) : {

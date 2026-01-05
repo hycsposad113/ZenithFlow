@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Task, TaskType, TaskStatus, KnowledgeItem, CalendarEvent, EventType } from '../types';
+import { Task, TaskType, TaskStatus, KnowledgeItem, CalendarEvent, EventType, DailyStats } from '../types';
 import { Button } from './Button';
 import { generateDailyRitual } from '../services/geminiService';
 import { deleteGoogleEvent, updateGoogleEvent } from '../services/googleCalendarService';
@@ -19,12 +19,14 @@ interface PlanningTabProps {
   setRoutine: React.Dispatch<React.SetStateAction<{ wake: string; meditation: boolean; exercise: boolean }>>;
   analysis: { insight: string; bookReference: string; concept: string; actionItem: string } | null;
   dailyAnalyses?: Record<string, { insight: string; bookReference: string; concept: string; actionItem: string }>;
+  dailyStats: Record<string, DailyStats>;
+  setDailyStats: React.Dispatch<React.SetStateAction<Record<string, DailyStats>>>;
   knowledge: KnowledgeItem[];
   totalFocusMinutes?: number;
 }
 
 export const PlanningTab: React.FC<PlanningTabProps> = ({
-  tasks, setTasks, events, setEvents, routine, setRoutine, analysis, dailyAnalyses = {}, knowledge, totalFocusMinutes = 0
+  tasks, setTasks, events, setEvents, routine, setRoutine, analysis, dailyAnalyses = {}, dailyStats, setDailyStats, knowledge, totalFocusMinutes = 0
 }) => {
   const [loading, setLoading] = useState(false);
   const [mantra, setMantra] = useState("The ability to choose cannot be taken away—it can only be forgotten. Discern the vital few from the trivial many.");
@@ -34,6 +36,43 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
   const selectedDateStr = selectedDate.toISOString().split('T')[0];
   const dateString = selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
   const weekday = selectedDate.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
+
+  // Routine Logic (Daily Stats > Global Routine)
+  const currentDailyStats = dailyStats[selectedDateStr];
+  const wakeTime = currentDailyStats?.wakeTime || routine.wake;
+  const isMeditationDone = currentDailyStats?.meditation ?? routine.meditation;
+  const isExerciseDone = currentDailyStats?.exercise ?? routine.exercise;
+
+  const handleRoutineUpdate = (field: 'wakeTime' | 'meditation' | 'exercise', value: any) => {
+    setDailyStats(prev => {
+      const existing = prev[selectedDateStr] || {
+        date: selectedDateStr,
+        completionRate: 0, // Default
+        focusMinutes: 0, // Default
+        wakeTime: routine.wake,
+        meditation: routine.meditation,
+        exercise: routine.exercise
+      };
+
+      return {
+        ...prev,
+        [selectedDateStr]: {
+          ...existing,
+          [field]: value
+        }
+      };
+    });
+
+    // If TODAY, sync to global routine state as well
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (selectedDateStr === todayStr) {
+      // Map DailyStats fields to Routine fields if names differ
+      // DailyStats: wakeTime, meditation, exercise
+      // Routine: wake, meditation, exercise
+      const routineField = field === 'wakeTime' ? 'wake' : field;
+      setRoutine(prev => ({ ...prev, [routineField]: value }));
+    }
+  };
 
   // Helper to change date
   const changeDate = (days: number) => {
@@ -303,35 +342,35 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
                   type="time"
                   className="bg-transparent border-none p-0 text-lg font-bodoni font-bold text-white outline-none focus:ring-0 w-full cursor-pointer appearance-none [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert"
                   style={{ background: 'transparent' }}
-                  value={routine.wake}
-                  onChange={(e) => setRoutine(prev => ({ ...prev, wake: e.target.value }))}
+                  value={wakeTime}
+                  onChange={(e) => handleRoutineUpdate('wakeTime', e.target.value)}
                 />
               </div>
             </div>
           </div>
 
           <button
-            onClick={() => setRoutine(prev => ({ ...prev, meditation: !prev.meditation }))}
-            className={`p-5 rounded-2xl flex items-center gap-5 transition-all border ${routine.meditation ? 'bg-white/20 border-white/40 shadow-inner' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+            onClick={() => handleRoutineUpdate('meditation', !isMeditationDone)}
+            className={`p-5 rounded-2xl flex items-center gap-5 transition-all border ${isMeditationDone ? 'bg-white/20 border-white/40 shadow-inner' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
           >
-            <div className={`p-3 rounded-xl ${routine.meditation ? 'bg-white text-[#bf363e]' : 'bg-white/10 text-white/40'}`}><Brain size={20} /></div>
+            <div className={`p-3 rounded-xl ${isMeditationDone ? 'bg-white text-[#bf363e]' : 'bg-white/10 text-white/40'}`}><Brain size={20} /></div>
             <div className="text-left flex-1">
               <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Meditation</p>
-              <p className={`text-lg font-bodoni font-bold ${routine.meditation ? 'text-white' : 'text-white/40'}`}>{routine.meditation ? 'Done' : 'Open'}</p>
+              <p className={`text-lg font-bodoni font-bold ${isMeditationDone ? 'text-white' : 'text-white/40'}`}>{isMeditationDone ? 'Done' : 'Open'}</p>
             </div>
-            {routine.meditation && <CheckCircle2 size={20} className="text-white" />}
+            {isMeditationDone && <CheckCircle2 size={20} className="text-white" />}
           </button>
 
           <button
-            onClick={() => setRoutine(prev => ({ ...prev, exercise: !prev.exercise }))}
-            className={`p-5 rounded-2xl flex items-center gap-5 transition-all border ${routine.exercise ? 'bg-white/20 border-white/40 shadow-inner' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
+            onClick={() => handleRoutineUpdate('exercise', !isExerciseDone)}
+            className={`p-5 rounded-2xl flex items-center gap-5 transition-all border ${isExerciseDone ? 'bg-white/20 border-white/40 shadow-inner' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}
           >
-            <div className={`p-3 rounded-xl ${routine.exercise ? 'bg-white text-[#bf363e]' : 'bg-white/10 text-white/40'}`}><Dumbbell size={20} /></div>
+            <div className={`p-3 rounded-xl ${isExerciseDone ? 'bg-white text-[#bf363e]' : 'bg-white/10 text-white/40'}`}><Dumbbell size={20} /></div>
             <div className="text-left flex-1">
               <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Exercise</p>
-              <p className={`text-lg font-bodoni font-bold ${routine.exercise ? 'text-white' : 'text-white/40'}`}>{routine.exercise ? 'Done' : 'Open'}</p>
+              <p className={`text-lg font-bodoni font-bold ${isExerciseDone ? 'text-white' : 'text-white/40'}`}>{isExerciseDone ? 'Done' : 'Open'}</p>
             </div>
-            {routine.exercise && <CheckCircle2 size={20} className="text-white" />}
+            {isExerciseDone && <CheckCircle2 size={20} className="text-white" />}
           </button>
         </div>
       </div>

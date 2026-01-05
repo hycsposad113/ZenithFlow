@@ -91,4 +91,6 @@ export interface DailyStats {
   completionRate: number; // 0-100
   focusMinutes: number;
   wakeTime: string;
+  meditation?: boolean;
+  exercise?: boolean;
 }

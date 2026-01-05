@@ -341,7 +341,7 @@ export const findOrCreateZenithFlowSheet = async (): Promise<string> => {
 
     // Add headers
     await appendRowToSheet(spreadsheetId, SHEET_NAME, [
-      "Date", "Wake Time", "Focus Minutes", "Completion %", "Reflection", "Insight", "Key Concept", "Action Item"
+      "Date", "Wake Time", "Meditation", "Exercise", "Focus Minutes", "Completion %", "Reflection", "Insight", "Key Concept", "Action Item"
     ]);
 
     return spreadsheetId;
@@ -358,7 +358,7 @@ export const findOrCreateZenithFlowSheet = async (): Promise<string> => {
  */
 export const syncDailyStatsToSheet = async (
   date: string,
-  stats: { wakeTime: string; focusMinutes: number; completionRate: number },
+  stats: { wakeTime: string; meditation: boolean; exercise: boolean; focusMinutes: number; completionRate: number },
   reflection: { reflection: string; insight: string; concept: string; actionItem: string }
 ) => {
   try {
@@ -377,6 +377,8 @@ export const syncDailyStatsToSheet = async (
     const rowData = [
       date,
       stats.wakeTime,
+      stats.meditation ? 'YES' : 'NO',
+      stats.exercise ? 'YES' : 'NO',
       stats.focusMinutes,
       stats.completionRate,
       reflection.reflection,
