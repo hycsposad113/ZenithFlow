@@ -76,9 +76,14 @@ export const signIn = () => {
 
     // 如果已經有 token 就不用重複跳視窗，除非失效
     // @ts-ignore
+    // @ts-ignore
     const token = gapi.client.getToken();
-    if (token === null) {
-      tokenClient.requestAccessToken({ prompt: 'consent' });
+    if (token) {
+      // We have a token, check validity? simpler to just try using it.
+      // Or if we need fresh access, requestAccessToken({prompt: ''})
+      // tokenClient.requestAccessToken({ prompt: '' });
+      resolve(); // Just resolve immediately if we think we are signed in.
+      // The caller will try to fetch events. If that fails (401), we handle re-auth.
     } else {
       tokenClient.requestAccessToken({ prompt: '' });
     }
@@ -86,28 +91,65 @@ export const signIn = () => {
 };
 
 /**
- * Fetches events from primary calendar
+ * Fetches events from ALL visible calendars
  */
 export const fetchGoogleEvents = async (): Promise<CalendarEvent[]> => {
   try {
+    // 1. Get list of all calendars
     // @ts-ignore
-    const response = await gapi.client.calendar.events.list({
-      calendarId: 'primary',
-      timeMin: (new Date()).toISOString(),
-      showDeleted: false,
-      singleEvents: true,
-      maxResults: 50,
-      orderBy: 'startTime',
+    const calendarListResp = await gapi.client.calendar.calendarList.list({
+      minAccessRole: 'reader'
     });
 
-    const events = response.result.items || [];
-    return events.map((event: any) => {
+    const calendars = calendarListResp.result.items || [];
+    let allEvents: any[] = [];
+
+    // 2. Fetch events for each calendar
+    // We use Promise.all to fetch in parallel
+    const fetchPromises = calendars.map(async (cal: any) => {
+      try {
+        // @ts-ignore
+        const response = await gapi.client.calendar.events.list({
+          calendarId: cal.id,
+          timeMin: (new Date()).toISOString(),
+          showDeleted: false,
+          singleEvents: true,
+          maxResults: 50,
+          orderBy: 'startTime',
+        });
+
+        // Add calendar info to event for potential coloring/context
+        const items = response.result.items || [];
+        return items.map((item: any) => ({ ...item, calendarSummary: cal.summary, calendarColor: cal.backgroundColor }));
+      } catch (e) {
+        console.warn(`Failed to fetch events for calendar ${cal.summary}`, e);
+        return [];
+      }
+    });
+
+    const results = await Promise.all(fetchPromises);
+    results.forEach(evts => {
+      allEvents = allEvents.concat(evts);
+    });
+
+    // 3. Map to internal format
+    return allEvents.map((event: any) => {
       const start = event.start.dateTime || event.start.date;
       const startDate = new Date(start);
       const end = event.end.dateTime || event.end.date;
       const endDate = new Date(end);
 
       const durationMinutes = Math.round((endDate.getTime() - startDate.getTime()) / 60000);
+
+      // Distinguish event types slightly based on calendar or content
+      let type = EventType.OTHER;
+      // Heuristic: If calendar name contains "Class", "University", "Tu Delft", etc or event title does.
+      const lowerTitle = (event.summary || "").toLowerCase();
+      const lowerCal = (event.calendarSummary || "").toLowerCase();
+
+      if (lowerCal.includes('class') || lowerCal.includes('school') || lowerCal.includes('university') || lowerCal.includes('tu delft')) {
+        type = EventType.WORK; // Treat school as work/study
+      }
 
       return {
         id: event.id,
@@ -116,8 +158,8 @@ export const fetchGoogleEvents = async (): Promise<CalendarEvent[]> => {
         date: startDate.toISOString().split('T')[0],
         startTime: startDate.toTimeString().split(' ')[0].slice(0, 5),
         durationMinutes: durationMinutes || 30,
-        type: EventType.OTHER,
-        notes: event.description || ""
+        type: type,
+        notes: event.description || `From calendar: ${event.calendarSummary}`
       };
     });
   } catch (err) {

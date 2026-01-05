@@ -63,6 +63,7 @@ export enum EventType {
   MEETING = 'Meeting',
   PREPARATION = 'Preparation',
   DEADLINE = 'Deadline',
+  WORK = 'Work',
   OTHER = 'Other'
 }
 
