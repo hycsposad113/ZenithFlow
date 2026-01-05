@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Task, TaskType, TaskStatus, CalendarEvent, EventType } from '../types';
 import { Button } from './Button';
 import { Trash2, X, Globe } from 'lucide-react';
-import { pushToGoogleCalendar, deleteGoogleEvent } from '../services/googleCalendarService';
+import { pushToGoogleCalendar, deleteGoogleEvent, updateGoogleEvent } from '../services/googleCalendarService';
 
 interface CalendarRailProps {
   tasks: Task[];
@@ -288,6 +288,8 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
             try {
               // @ts-ignore
               if (gapi?.client?.getToken()) {
+                // IMPORTANT: Push with "New Task" initially, but editing it later will update it.
+                // We keep this behavior but ensure the UPDATE syncs.
                 const gId = await pushToGoogleCalendar('New Task', todayStr, time, durationMinutes);
                 setTasks(prev => prev.map(t => t.id === newTask.id ? { ...t, googleEventId: gId as string } : t));
               }
@@ -344,11 +346,41 @@ export const CalendarRail: React.FC<CalendarRailProps> = ({ tasks, setTasks, eve
   };
 
   const updateItem = (id: string, isEvent: boolean, updates: any) => {
-    const { setEvents, setTasks } = stateRef.current;
+    const { setEvents, setTasks, tasks, events } = stateRef.current;
     if (isEvent && setEvents) {
-      setEvents(prev => prev.map(ev => ev.id === id ? { ...ev, ...updates } : ev));
+      setEvents(prev => prev.map(ev => {
+        if (ev.id === id) {
+          const updated = { ...ev, ...updates };
+          if (updated.googleEventId) {
+            updateGoogleEvent(
+              updated.googleEventId,
+              updated.title,
+              updated.date,
+              updated.startTime,
+              updated.durationMinutes
+            ).catch(console.error);
+          }
+          return updated;
+        }
+        return ev;
+      }));
     } else if (setTasks) {
-      setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+      setTasks(prev => prev.map(t => {
+        if (t.id === id) {
+          const updated = { ...t, ...updates };
+          if (updated.googleEventId) {
+            updateGoogleEvent(
+              updated.googleEventId,
+              updated.title,
+              updated.date,
+              updated.scheduledTime || '09:00',
+              updated.durationMinutes
+            ).catch(console.error);
+          }
+          return updated;
+        }
+        return t;
+      }));
     }
   };
 

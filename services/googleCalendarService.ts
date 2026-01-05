@@ -236,6 +236,40 @@ export const pushToGoogleCalendar = async (title: string, date: string, startTim
     throw err;
   }
 };
+
+/**
+ * Updates an existing event in Google Calendar
+ */
+export const updateGoogleEvent = async (eventId: string, title: string, date: string, startTime: string, durationMinutes: number) => {
+  const startDateTime = new Date(`${date}T${startTime}:00`);
+  const endDateTime = new Date(startDateTime.getTime() + durationMinutes * 60000);
+
+  const event = {
+    'summary': title,
+    'start': {
+      'dateTime': startDateTime.toISOString(),
+      'timeZone': 'Europe/Amsterdam'
+    },
+    'end': {
+      'dateTime': endDateTime.toISOString(),
+      'timeZone': 'Europe/Amsterdam'
+    }
+  };
+
+  try {
+    // @ts-ignore
+    await gapi.client.calendar.events.patch({
+      'calendarId': 'primary',
+      'eventId': eventId,
+      'resource': event
+    });
+    return true;
+  } catch (err) {
+    console.error("Update Event Error:", err);
+    throw err;
+  }
+};
+
 // --- Delete Event ---
 export const deleteGoogleEvent = async (eventId: string) => {
   try {

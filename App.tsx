@@ -391,30 +391,39 @@ const App: React.FC = () => {
                   analysis={analysis}
                   setAnalysis={(newAnalysis) => {
                     setAnalysis(newAnalysis as any);
+                    const today = new Date().toISOString().split('T')[0];
+
                     if (newAnalysis) {
-                      const today = new Date().toISOString().split('T')[0];
                       setDailyAnalyses(prev => ({ ...prev, [today]: newAnalysis as any }));
-
-                      // Auto-sync to Google Sheet
-                      const currentStats = dailyStats[today] || {
-                        date: today,
-                        wakeTime: routine.wake,
-                        focusMinutes: 0,
-                        completionRate: 0
-                      };
-
-                      // Recalculate completion just to be sure
-                      const todayTasks = tasks.filter(t => t.date === today && t.origin !== 'template');
-                      const completed = todayTasks.filter(t => t.status === 'Completed').length;
-                      const total = todayTasks.length;
-                      const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-                      syncDailyStatsToSheet(today, {
-                        wakeTime: routine.wake,
-                        focusMinutes: currentStats.focusMinutes,
-                        completionRate: rate
-                      }, newAnalysis as any).then(() => console.log('Synced to Sheet')).catch(e => console.error(e));
+                    } else {
+                      // Handle deletion
+                      setDailyAnalyses(prev => {
+                        const next = { ...prev };
+                        delete next[today];
+                        return next;
+                      });
                     }
+
+                    // Auto-sync to Google Sheet (even if null to clear the row)
+                    const currentStats = dailyStats[today] || {
+                      date: today,
+                      wakeTime: routine.wake,
+                      focusMinutes: 0,
+                      completionRate: 0
+                    };
+
+                    const todayTasks = tasks.filter(t => t.date === today && t.origin !== 'template');
+                    const completed = todayTasks.filter(t => t.status === 'Completed').length;
+                    const total = todayTasks.length;
+                    const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+                    syncDailyStatsToSheet(today, {
+                      wakeTime: routine.wake,
+                      focusMinutes: currentStats.focusMinutes,
+                      completionRate: rate
+                    }, newAnalysis ? (newAnalysis as any) : {
+                      reflection: '', insight: '', concept: '', actionItem: ''
+                    }).then(() => console.log('Synced (Update/Delete) to Sheet')).catch(e => console.error(e));
                   }}
                   knowledge={[]}
                 />

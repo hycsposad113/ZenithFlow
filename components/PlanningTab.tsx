@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Task, TaskType, TaskStatus, KnowledgeItem, CalendarEvent, EventType } from '../types';
 import { Button } from './Button';
 import { generateMorningPlan } from '../services/geminiService';
-import { deleteGoogleEvent } from '../services/googleCalendarService';
+import { deleteGoogleEvent, updateGoogleEvent } from '../services/googleCalendarService';
 import {
   Zap, Trash2, CheckCircle2, Circle, X, Clock, Sunrise, Brain, Dumbbell
 } from 'lucide-react';
@@ -325,9 +325,27 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
                   value={editingItem.title}
                   onChange={(e) => {
                     if (editingId?.isEvent) {
-                      setEvents(prev => prev.map(ev => ev.id === editingId.id ? { ...ev, title: e.target.value } : ev));
+                      setEvents(prev => prev.map(ev => {
+                        if (ev.id === editingId.id) {
+                          const updated = { ...ev, title: e.target.value };
+                          if (updated.googleEventId) {
+                            updateGoogleEvent(updated.googleEventId, updated.title, updated.date, updated.startTime, updated.durationMinutes).catch(console.error);
+                          }
+                          return updated;
+                        }
+                        return ev;
+                      }));
                     } else {
-                      setTasks(prev => prev.map(t => t.id === editingId?.id ? { ...t, title: e.target.value } : t));
+                      setTasks(prev => prev.map(t => {
+                        if (t.id === editingId?.id) {
+                          const updated = { ...t, title: e.target.value };
+                          if (updated.googleEventId) {
+                            updateGoogleEvent(updated.googleEventId, updated.title, updated.date, updated.scheduledTime || '09:00', updated.durationMinutes).catch(console.error);
+                          }
+                          return updated;
+                        }
+                        return t;
+                      }));
                     }
                   }}
                 />
@@ -337,9 +355,27 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
                   <label className="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2 block">Start</label>
                   <input type="time" className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-sm font-semibold text-white outline-none" value={editingId?.isEvent ? (editingItem as CalendarEvent).startTime : (editingItem as Task).scheduledTime} onChange={(e) => {
                     if (editingId?.isEvent) {
-                      setEvents(prev => prev.map(ev => ev.id === editingId.id ? { ...ev, startTime: e.target.value } : ev));
+                      setEvents(prev => prev.map(ev => {
+                        if (ev.id === editingId.id) {
+                          const updated = { ...ev, startTime: e.target.value };
+                          if (updated.googleEventId) {
+                            updateGoogleEvent(updated.googleEventId, updated.title, updated.date, updated.startTime, updated.durationMinutes).catch(console.error);
+                          }
+                          return updated;
+                        }
+                        return ev;
+                      }));
                     } else {
-                      setTasks(prev => prev.map(t => t.id === editingId?.id ? { ...t, scheduledTime: e.target.value } : t));
+                      setTasks(prev => prev.map(t => {
+                        if (t.id === editingId?.id) {
+                          const updated = { ...t, scheduledTime: e.target.value };
+                          if (updated.googleEventId) {
+                            updateGoogleEvent(updated.googleEventId, updated.title, updated.date, updated.scheduledTime || '09:00', updated.durationMinutes).catch(console.error);
+                          }
+                          return updated;
+                        }
+                        return t;
+                      }));
                     }
                   }}
                   />
@@ -350,9 +386,27 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
                     const start = editingId?.isEvent ? (editingItem as CalendarEvent).startTime : (editingItem as Task).scheduledTime || '00:00';
                     const newDuration = calculateDuration(start, e.target.value);
                     if (editingId?.isEvent) {
-                      setEvents(prev => prev.map(ev => ev.id === editingId.id ? { ...ev, durationMinutes: newDuration } : ev));
+                      setEvents(prev => prev.map(ev => {
+                        if (ev.id === editingId.id) {
+                          const updated = { ...ev, durationMinutes: newDuration };
+                          if (updated.googleEventId) {
+                            updateGoogleEvent(updated.googleEventId, updated.title, updated.date, updated.startTime, updated.durationMinutes).catch(console.error);
+                          }
+                          return updated;
+                        }
+                        return ev;
+                      }));
                     } else {
-                      setTasks(prev => prev.map(t => t.id === editingId?.id ? { ...t, durationMinutes: newDuration } : t));
+                      setTasks(prev => prev.map(t => {
+                        if (t.id === editingId?.id) {
+                          const updated = { ...t, durationMinutes: newDuration };
+                          if (updated.googleEventId) {
+                            updateGoogleEvent(updated.googleEventId, updated.title, updated.date, updated.scheduledTime || '09:00', updated.durationMinutes).catch(console.error);
+                          }
+                          return updated;
+                        }
+                        return t;
+                      }));
                     }
                   }}
                   />

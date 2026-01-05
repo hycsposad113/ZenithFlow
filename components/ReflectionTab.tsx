@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Task, KnowledgeItem } from '../types';
 import { Button } from './Button';
 import { analyzeDailyReflection } from '../services/geminiService';
+import { Trash2 } from 'lucide-react';
 
 interface ReflectionTabProps {
   tasks: Task[];
@@ -52,8 +53,8 @@ export const ReflectionTab: React.FC<ReflectionTabProps> = ({ tasks, setTasks, a
               </div>
               <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-2xl border border-white/10">
                 <label className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Actual:</label>
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   className="w-16 bg-transparent border-none text-center text-sm font-bold text-white focus:ring-0 outline-none"
                   placeholder="0"
                   value={task.actualDurationMinutes || ''}
@@ -62,7 +63,7 @@ export const ReflectionTab: React.FC<ReflectionTabProps> = ({ tasks, setTasks, a
                 <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">min</span>
               </div>
             </div>
-            
+
             <textarea
               className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white/90 placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/10 transition-all resize-none h-20"
               placeholder="Why the difference? Capture the insight..."
@@ -81,9 +82,18 @@ export const ReflectionTab: React.FC<ReflectionTabProps> = ({ tasks, setTasks, a
 
       {analysis && (
         <div className="glass-card-dark p-8 rounded-[40px] shadow-2xl animate-fade-in border border-white/10">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="bg-white w-2 h-2 rounded-full animate-pulse shadow-[0_0_10px_rgba(255,255,255,0.8)]"></div>
-            <h3 className="text-sm font-bold uppercase tracking-widest text-white/60">ZenithFlow Insight</h3>
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="bg-white w-2 h-2 rounded-full animate-pulse shadow-[0_0_10px_rgba(255,255,255,0.8)]"></div>
+              <h3 className="text-sm font-bold uppercase tracking-widest text-white/60">ZenithFlow Insight</h3>
+            </div>
+            <button
+              onClick={() => setAnalysis(null)}
+              className="p-2 text-white/20 hover:text-red-400 transition-colors rounded-full hover:bg-white/5"
+              title="Delete analysis"
+            >
+              <Trash2 size={16} />
+            </button>
           </div>
           <div className="space-y-8">
             <p className="text-xl font-bodoni italic text-white leading-relaxed">"{analysis.insight}"</p>
