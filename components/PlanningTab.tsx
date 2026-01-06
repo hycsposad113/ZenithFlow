@@ -89,16 +89,6 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
         }
       };
     });
-
-    // If TODAY, sync to global routine state as well
-    const todayStr = new Date().toISOString().split('T')[0];
-    if (selectedDateStr === todayStr) {
-      // Map DailyStats fields to Routine fields if names differ
-      // DailyStats: wakeTime, meditation, exercise
-      // Routine: wake, meditation, exercise
-      const routineField = field === 'wakeTime' ? 'wake' : field;
-      setRoutine(prev => ({ ...prev, [routineField]: value }));
-    }
   };
 
   // Helper to change date
