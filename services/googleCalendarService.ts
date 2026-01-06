@@ -530,15 +530,29 @@ export const saveAppStateToSheet = async (state: any) => {
       });
     }
 
-    // 2. Save state as a JSON string in cell A1
+    // 2. Save state as COMPRESSED chunks (actually just split string to avoid cell limit)
+    // Cell limit is 50k chars. We split into 40k chunks to be safe.
     const jsonState = JSON.stringify(state);
+    const CHUNK_SIZE = 40000;
+    const chunks = [];
+    for (let i = 0; i < jsonState.length; i += CHUNK_SIZE) {
+      chunks.push([jsonState.slice(i, i + CHUNK_SIZE)]);
+    }
 
+    // Clear existing data to avoid corruption if new data is shorter
+    // @ts-ignore
+    await gapi.client.sheets.spreadsheets.values.clear({
+      spreadsheetId,
+      range: `${STATE_SHEET_NAME}!A:A`
+    });
+
+    // Write new chunks
     // @ts-ignore
     await gapi.client.sheets.spreadsheets.values.update({
       spreadsheetId,
       range: `${STATE_SHEET_NAME}!A1`,
       valueInputOption: 'RAW',
-      resource: { values: [[jsonState]] }
+      resource: { values: chunks }
     });
 
     // 3. Sync Readable Transactions
@@ -546,15 +560,11 @@ export const saveAppStateToSheet = async (state: any) => {
       await syncTransactions(spreadsheetId, state.transactions);
     }
 
-    console.log("App state saved to cloud!");
+    console.log(`App state saved to cloud! (${Math.ceil(jsonState.length / 1024)} KB)`);
   } catch (e) {
     console.error("Error saving app state:", e);
-    // DEBUG: Alert user to debug drive issue
     // @ts-ignore
     const msg = e.result?.error?.message || e.message || JSON.stringify(e);
-    // Only alert if it's NOT just a transaction sync warning (which is logged internally)
-    // Actually, let's keep it robust.
-    // We remove the ALERT now because the user confirmed file exists, just missing data.
     console.error("GOOGLE SYNC ERROR DETAILS:", msg);
   }
 };
@@ -569,17 +579,19 @@ export const loadAppStateFromSheet = async () => {
     // @ts-ignore
     const response = await gapi.client.sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `${STATE_SHEET_NAME}!A1`
+      range: `${STATE_SHEET_NAME}!A:A`
     });
 
     const rows = response.result.values;
-    if (rows && rows.length > 0 && rows[0].length > 0) {
+    if (rows && rows.length > 0) {
       try {
-        // Ensure we are parsing a valid JSON string
-        const jsonState = rows[0][0];
+        // Reassemble chunks
+        const jsonState = rows.map((r: any[]) => r[0] || '').join('');
+        if (!jsonState) return null;
+
         return JSON.parse(jsonState);
       } catch (parseError) {
-        console.warn("Failed to parse AppState from sheet, treating as empty.", parseError);
+        console.warn("Failed to parse AppState from sheet chunks, treating as empty.", parseError);
         return null;
       }
     }
