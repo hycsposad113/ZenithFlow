@@ -89,6 +89,15 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
         }
       };
     });
+
+    // Smart Sync:
+    // If editing a FUTURE date, update the Global Routine (User is Planning/Setting a Goal).
+    // If editing TODAY/PAST, only update the Log (User is recording Actuals).
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (selectedDateStr > todayStr) {
+      const routineField = field === 'wakeTime' ? 'wake' : field;
+      setRoutine(prev => ({ ...prev, [routineField]: value }));
+    }
   };
 
   // Helper to change date
