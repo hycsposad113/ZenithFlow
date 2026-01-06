@@ -300,7 +300,12 @@ export const FinanceTab: React.FC<FinanceTabProps> = ({ transactions, setTransac
                         <Pie data={chartData} innerRadius={70} outerRadius={90} paddingAngle={8} dataKey="value" stroke="none">
                           {chartData.map((_, index) => <Cell key={`c-${index}`} fill={COLORS[index % COLORS.length]} />)}
                         </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: '#000', border: 'none', borderRadius: '16px', color: 'white', fontSize: '10px' }} />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px' }}
+                          itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}
+                          labelStyle={{ color: '#rgba(255,255,255,0.6)' }}
+                          cursor={false}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
