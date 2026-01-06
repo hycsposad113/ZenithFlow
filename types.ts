@@ -94,3 +94,18 @@ export interface DailyStats {
   meditation?: boolean;
   exercise?: boolean;
 }
+
+export enum TodoQuadrant {
+  Q1 = 'Urgent & Important',
+  Q2 = 'Important & Not Urgent',
+  Q3 = 'Urgent & Not Important',
+  Q4 = 'Not Urgent & Not Important',
+}
+
+export interface TodoItem {
+  id: string;
+  text: string;
+  quadrant: TodoQuadrant;
+  completed: boolean;
+  createdAt: number;
+}

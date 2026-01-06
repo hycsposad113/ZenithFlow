@@ -9,9 +9,10 @@ import { FocusTab } from './components/FocusTab';
 import { Sidebar } from './components/Sidebar';
 import { CalendarRail } from './components/CalendarRail';
 import { Login } from './components/Login';
-import { Task, Transaction, CalendarEvent, DailyStats, TaskType, TaskStatus, EventType } from './types';
-import { Home, BarChart2, TrendingUp, Calendar, Target, Timer, Clock, Menu, X, RefreshCw } from 'lucide-react';
+import { Task, Transaction, CalendarEvent, DailyStats, TaskType, TaskStatus, EventType, TodoItem } from './types';
+import { Home, BarChart2, TrendingUp, Calendar, Target, Timer, Clock, Menu, X, RefreshCw, CheckSquare } from 'lucide-react';
 import { initGoogleAuth, signIn, fetchGoogleEvents, syncDailyStatsToSheet, saveAppStateToSheet, loadAppStateFromSheet } from './services/googleCalendarService';
+import { TodoTab } from './components/TodoTab';
 
 enum Tab {
   PLANNING = 'planning',
@@ -19,7 +20,8 @@ enum Tab {
   FINANCE = 'finance',
   MONTHLY = 'monthly',
   WEEKLY = 'weekly',
-  FOCUS = 'focus'
+  FOCUS = 'focus',
+  TODO = 'todo' // New Tab
 }
 
 interface ReflectionAnalysis {
@@ -41,6 +43,7 @@ interface AppState {
   weeklyAnalyses: Record<string, any>;
   dailyStats: Record<string, DailyStats>;
   totalFocusMinutes: number;
+  todos: TodoItem[]; // New State persistence
 }
 
 const App: React.FC = () => {
@@ -58,6 +61,7 @@ const App: React.FC = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [goals, setGoals] = useState<string[]>(['', '', '']);
   const [routine, setRoutine] = useState({ wake: '07:30', meditation: false, exercise: false });
+  const [todos, setTodos] = useState<TodoItem[]>([]); // New State
 
   // Shared Date State
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -167,6 +171,7 @@ const App: React.FC = () => {
         if (cloudState.dailyStats) setDailyStats(cloudState.dailyStats);
         if (cloudState.dailyAnalyses) setDailyAnalyses(cloudState.dailyAnalyses);
         if (cloudState.weeklyAnalyses) setWeeklyAnalyses(cloudState.weeklyAnalyses);
+        if (cloudState.todos) setTodos(cloudState.todos); // Restore Todos
         if (!silent) {
           // Optional: toast or less intrusive notification
         }
@@ -238,6 +243,7 @@ const App: React.FC = () => {
           dailyStats,
           dailyAnalyses,
           weeklyAnalyses,
+          todos, // Save Todos
         };
         saveAppStateToSheet(currentStateToSave)
           .then(() => console.log("Auto-saved to cloud."))
@@ -246,7 +252,7 @@ const App: React.FC = () => {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [tasks, transactions, routine, dailyStats, dailyAnalyses, weeklyAnalyses, isGoogleSynced]);
+  }, [tasks, transactions, routine, dailyStats, dailyAnalyses, weeklyAnalyses, todos, isGoogleSynced]);
 
   const saveToHistory = useCallback(() => {
     if (isUndoingRef.current) return;
@@ -262,9 +268,10 @@ const App: React.FC = () => {
       weeklyAnalyses: { ...weeklyAnalyses },
       dailyStats: { ...dailyStats },
       totalFocusMinutes,
+      todos: [...todos],
     };
     historyRef.current = [...historyRef.current.slice(-49), snapshot];
-  }, [tasks, transactions, events, goals, routine, review, analysis, dailyAnalyses, weeklyAnalyses, dailyStats, totalFocusMinutes]);
+  }, [tasks, transactions, events, goals, routine, review, analysis, dailyAnalyses, weeklyAnalyses, dailyStats, totalFocusMinutes, todos]);
 
   const undo = useCallback(() => {
     if (historyRef.current.length === 0) return;
@@ -281,8 +288,14 @@ const App: React.FC = () => {
     setWeeklyAnalyses(lastState.weeklyAnalyses);
     setDailyStats(lastState.dailyStats);
     setTotalFocusMinutes(lastState.totalFocusMinutes);
+    setTodos(lastState.todos || []);
     setTimeout(() => { isUndoingRef.current = false; }, 10);
   }, []);
+
+  const setUndoableTodos = (newTodos: React.SetStateAction<TodoItem[]>) => {
+    saveToHistory();
+    setTodos(newTodos);
+  };
 
   // ... (keep setUndoable wrappers) ...
 
@@ -532,6 +545,11 @@ const App: React.FC = () => {
                   sessionCount={timerSessionCount}
                   setSessionCount={setTimerSessionCount}
                 />
+              </div>
+            )}
+            {currentTab === Tab.TODO && (
+              <div className="w-full h-full">
+                <TodoTab todos={todos} setTodos={setUndoableTodos} />
               </div>
             )}
           </div>

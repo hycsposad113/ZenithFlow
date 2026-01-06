@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Home, Calendar, Timer, Target, TrendingUp, BarChart2, RefreshCw } from 'lucide-react';
+import { Home, Calendar, Timer, Target, TrendingUp, BarChart2, RefreshCw, CheckSquare } from 'lucide-react';
 
 interface SidebarProps {
   currentTab: string;
@@ -13,14 +13,15 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab, onGoogleSync, isSynced, onClose }) => {
   const menuItems = [
     { id: 'planning', label: 'Daily Plan', icon: Home },
+    { id: 'weekly', label: 'Weekly Plan', icon: Target },
+    { id: 'monthly', label: 'Monthly Plan', icon: Calendar },
     { id: 'reflection', label: 'Review', icon: BarChart2 },
-    { id: 'finance', label: 'Assets', icon: TrendingUp },
   ];
 
   const subItems = [
-    { id: 'monthly', label: 'Monthly Plan', icon: Calendar },
-    { id: 'weekly', label: 'Weekly Plan', icon: Target },
+    { id: 'finance', label: 'Assets', icon: TrendingUp },
     { id: 'focus', label: 'Focus', icon: Timer },
+    { id: 'todo', label: 'Todo', icon: CheckSquare },
   ];
 
   return (
