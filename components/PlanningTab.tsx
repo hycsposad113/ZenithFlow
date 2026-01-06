@@ -23,15 +23,17 @@ interface PlanningTabProps {
   setDailyStats: React.Dispatch<React.SetStateAction<Record<string, DailyStats>>>;
   knowledge: KnowledgeItem[];
   totalFocusMinutes?: number;
+  selectedDate: Date;
+  setSelectedDate: React.Dispatch<React.SetStateAction<Date>>;
 }
 
 export const PlanningTab: React.FC<PlanningTabProps> = ({
-  tasks, setTasks, events, setEvents, routine, setRoutine, analysis, dailyAnalyses = {}, dailyStats, setDailyStats, knowledge, totalFocusMinutes = 0
+  tasks, setTasks, events, setEvents, routine, setRoutine, analysis, dailyAnalyses = {}, dailyStats, setDailyStats, knowledge, totalFocusMinutes = 0,
+  selectedDate, setSelectedDate
 }) => {
   const [loading, setLoading] = useState(false);
   const [mantra, setMantra] = useState("The ability to choose cannot be taken away—it can only be forgotten. Discern the vital few from the trivial many.");
   const [editingId, setEditingId] = useState<{ id: string, isEvent: boolean } | null>(null);
-  const [selectedDate, setSelectedDate] = useState(new Date());
 
   const selectedDateStr = selectedDate.toISOString().split('T')[0];
   const dateString = selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();

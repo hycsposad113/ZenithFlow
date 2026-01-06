@@ -12,10 +12,17 @@ interface ReflectionTabProps {
   setAnalysis: React.Dispatch<React.SetStateAction<{ insight: string; bookReference: string; concept: string; actionItem: string } | null>>;
   dailyStats: Record<string, any>;
   knowledge: KnowledgeItem[];
+  selectedDate: Date;
 }
 
-export const ReflectionTab: React.FC<ReflectionTabProps> = ({ tasks, setTasks, analysis, setAnalysis, dailyStats, knowledge }) => {
+export const ReflectionTab: React.FC<ReflectionTabProps> = ({ tasks, setTasks, analysis, setAnalysis, dailyStats, knowledge, selectedDate }) => {
   const [loading, setLoading] = useState(false);
+
+  const selectedDateStr = selectedDate.toISOString().split('T')[0];
+  const dateDisplay = selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+
+  // Filter tasks for the selected date
+  const todaysTasks = tasks.filter(t => t.date === selectedDateStr);
 
   const handleUpdateActual = (id: string, mins: number) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, actualDurationMinutes: mins } : t));
@@ -27,10 +34,9 @@ export const ReflectionTab: React.FC<ReflectionTabProps> = ({ tasks, setTasks, a
 
   const runAnalysis = async () => {
     setLoading(true);
-    const today = new Date().toISOString().split('T')[0];
-    const todaysStats = dailyStats[today]; // Pass undefined if missing, service handles it
+    const todaysStats = dailyStats[selectedDateStr]; // Pass undefined if missing, service handles it
     try {
-      const result = await analyzeDailyReflection(tasks, knowledge, todaysStats);
+      const result = await analyzeDailyReflection(todaysTasks, knowledge, todaysStats);
       setAnalysis(result);
     } catch (e) {
       console.error(e);
@@ -41,13 +47,13 @@ export const ReflectionTab: React.FC<ReflectionTabProps> = ({ tasks, setTasks, a
 
   return (
     <div className="max-w-3xl mx-auto pb-20 text-white">
-      <header className="mb-10">
+      <header className="mb-10 text-center md:text-left">
         <h2 className="text-4xl font-bodoni font-bold floating-title mb-2">Daily Review</h2>
-        <p className="text-white/60 text-sm font-medium">Measure the gap. Close the gap.</p>
+        <p className="text-white/60 text-sm font-medium tracking-wide">{dateDisplay} — Measure the gap. Close the gap.</p>
       </header>
 
       <div className="space-y-6 mb-10">
-        {tasks.map(task => (
+        {todaysTasks.length > 0 ? todaysTasks.map(task => (
           <div key={task.id} className="glass-card p-6 rounded-3xl animate-fade-in">
             <div className="flex justify-between items-start mb-6">
               <div className="flex-1">
@@ -74,7 +80,9 @@ export const ReflectionTab: React.FC<ReflectionTabProps> = ({ tasks, setTasks, a
               onChange={(e) => handleUpdateReflection(task.id, e.target.value)}
             />
           </div>
-        ))}
+        )) : (
+          <div className="py-20 text-center text-white/40 italic">No tasks found for {dateDisplay}.</div>
+        )}
       </div>
 
       <div className="flex justify-end mb-10">

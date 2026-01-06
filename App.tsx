@@ -58,6 +58,9 @@ const App: React.FC = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [goals, setGoals] = useState<string[]>(['', '', '']);
   const [routine, setRoutine] = useState({ wake: '07:30', meditation: false, exercise: false });
+
+  // Shared Date State
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [review, setReview] = useState('');
   const [analysis, setAnalysis] = useState<ReflectionAnalysis | null>(null);
   const [dailyAnalyses, setDailyAnalyses] = useState<Record<string, ReflectionAnalysis>>({});
@@ -421,6 +424,8 @@ const App: React.FC = () => {
                 setDailyStats={setDailyStats}
                 knowledge={[]}
                 totalFocusMinutes={totalFocusMinutes}
+                selectedDate={selectedDate}
+                setSelectedDate={setSelectedDate}
               />
             )}
             {currentTab === Tab.REFLECTION && (
@@ -478,6 +483,7 @@ const App: React.FC = () => {
                   }}
                   dailyStats={dailyStats}
                   knowledge={[]}
+                  selectedDate={selectedDate}
                 />
               </div>
             )}
