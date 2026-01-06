@@ -353,8 +353,44 @@ export const findOrCreateZenithFlowSheet = async (): Promise<string> => {
   }
 };
 
+const getOrCreateSheet = async (spreadsheetId: string, sheetName: string, headers: string[]): Promise<boolean> => {
+  try {
+    // @ts-ignore
+    const sheetMeta = await gapi.client.sheets.spreadsheets.get({ spreadsheetId });
+    const sheetExists = sheetMeta.result.sheets.some((s: any) => s.properties.title === sheetName);
+
+    if (!sheetExists) {
+      // @ts-ignore
+      await gapi.client.sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        resource: {
+          requests: [{
+            addSheet: {
+              properties: { title: sheetName }
+            }
+          }]
+        }
+      });
+
+      // Write Headers
+      // @ts-ignore
+      await gapi.client.sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: `${sheetName}!A1`,
+        valueInputOption: 'USER_ENTERED',
+        resource: { values: [headers] }
+      });
+      return true; // Created
+    }
+    return false; // Existed
+  } catch (e) {
+    console.error(`Error checking/creating sheet ${sheetName}:`, e);
+    throw e;
+  }
+};
+
 /**
- * Appends or updates a row for the given date.
+ * Appends or updates a row for the given date in the MONTHLY log sheet.
  */
 export const syncDailyStatsToSheet = async (
   date: string,
@@ -363,12 +399,18 @@ export const syncDailyStatsToSheet = async (
 ) => {
   try {
     const spreadsheetId = await findOrCreateZenithFlowSheet();
+    const monthSuffix = date.slice(0, 7); // YYYY-MM
+    const sheetName = `Logs_${monthSuffix}`;
+
+    await getOrCreateSheet(spreadsheetId, sheetName, [
+      "Date", "Wake Time", "Meditation", "Exercise", "Focus Minutes", "Completion %", "Reflection", "Insight", "Key Concept", "Action Item"
+    ]);
 
     // 1. Read existing data to check for duplicates
     // @ts-ignore
     const readResp = await gapi.client.sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: `${SHEET_NAME}!A:A`,
+      range: `${sheetName}!A:A`,
     });
 
     const rows = readResp.result.values || [];
@@ -392,21 +434,21 @@ export const syncDailyStatsToSheet = async (
       // @ts-ignore
       await gapi.client.sheets.spreadsheets.values.update({
         spreadsheetId,
-        range: `${SHEET_NAME}!A${rowIndex + 1}`,
+        range: `${sheetName}!A${rowIndex + 1}`,
         valueInputOption: 'USER_ENTERED',
         resource: { values: [rowData] }
       });
-      console.log(`Updated row ${rowIndex + 1} for ${date}`);
+      console.log(`Updated row ${rowIndex + 1} for ${date} in ${sheetName}`);
     } else {
       // Append new row
       // @ts-ignore
       await gapi.client.sheets.spreadsheets.values.append({
         spreadsheetId,
-        range: `${SHEET_NAME}!A1`,
+        range: `${sheetName}!A1`,
         valueInputOption: 'USER_ENTERED',
         resource: { values: [rowData] }
       });
-      console.log(`Appended daily log for ${date}`);
+      console.log(`Appended daily log for ${date} in ${sheetName}`);
     }
 
   } catch (e) {
@@ -432,67 +474,53 @@ const TRANSACTIONS_SHEET_NAME = "Transactions";
 
 const syncTransactions = async (spreadsheetId: string, transactions: any[]) => {
   try {
-    // Check if sheet exists
-    // @ts-ignore
-    const sheetMeta = await gapi.client.sheets.spreadsheets.get({ spreadsheetId });
-    const sheetExists = sheetMeta.result.sheets.some((s: any) => s.properties.title === TRANSACTIONS_SHEET_NAME);
-
-    if (!sheetExists) {
-      // Create Sheet with Header
-      // @ts-ignore
-      await gapi.client.sheets.spreadsheets.batchUpdate({
-        spreadsheetId,
-        resource: {
-          requests: [{
-            addSheet: {
-              properties: {
-                title: TRANSACTIONS_SHEET_NAME,
-                gridProperties: { frozenRowCount: 1 }
-              }
-            }
-          }]
-        }
-      });
-
-      // Write Headers
-      // @ts-ignore
-      await gapi.client.sheets.spreadsheets.values.update({
-        spreadsheetId,
-        range: `${TRANSACTIONS_SHEET_NAME}!A1`,
-        valueInputOption: 'USER_ENTERED',
-        resource: { values: [['Date', 'Currency', 'Category', 'Amount', 'Status', 'Notes', 'ID']] }
-      });
-    }
-
-    // Format Data
-    const rows = transactions.map((t: any) => [
-      t.date,
-      t.currency,
-      t.category,
-      t.amount,
-      t.currency === 'NTD' ? (t.isProfit ? 'PROFIT' : 'LOSS') : '-',
-      t.notes || '',
-      t.id
-    ]);
-
-    // Clear old data (A2:G) to handle deletions
-    // @ts-ignore
-    await gapi.client.sheets.spreadsheets.values.clear({
-      spreadsheetId,
-      range: `${TRANSACTIONS_SHEET_NAME}!A2:G`
+    // Group transactions by month
+    const grouped: { [key: string]: any[] } = {};
+    transactions.forEach(t => {
+      const month = t.date.slice(0, 7) || 'Unknown'; // YYYY-MM
+      if (!grouped[month]) grouped[month] = [];
+      grouped[month].push(t);
     });
 
-    if (rows.length > 0) {
-      // Write new data
+    // Iterate over each month group
+    for (const month of Object.keys(grouped)) {
+      if (month === 'Unknown') continue;
+
+      const sheetName = `Transactions_${month}`;
+      const monthTransactions = grouped[month];
+
+      await getOrCreateSheet(spreadsheetId, sheetName, ['Date', 'Currency', 'Category', 'Amount', 'Status', 'Notes', 'ID']);
+
+      // Format Data
+      const rows = monthTransactions.map((t: any) => [
+        t.date,
+        t.currency,
+        t.category,
+        t.amount,
+        t.currency === 'NTD' ? (t.isProfit ? 'PROFIT' : 'LOSS') : '-',
+        t.notes || '',
+        t.id
+      ]);
+
+      // Clear old data (A2:G) to overwrite
       // @ts-ignore
-      await gapi.client.sheets.spreadsheets.values.update({
+      await gapi.client.sheets.spreadsheets.values.clear({
         spreadsheetId,
-        range: `${TRANSACTIONS_SHEET_NAME}!A2`,
-        valueInputOption: 'USER_ENTERED',
-        resource: { values: rows }
+        range: `${sheetName}!A2:G`
       });
+
+      if (rows.length > 0) {
+        // Write new data
+        // @ts-ignore
+        await gapi.client.sheets.spreadsheets.values.update({
+          spreadsheetId,
+          range: `${sheetName}!A2`,
+          valueInputOption: 'USER_ENTERED',
+          resource: { values: rows }
+        });
+      }
+      console.log(`Synced ${rows.length} transactions to ${sheetName}`);
     }
-    console.log("Transactions synced to readable sheet.");
   } catch (e) {
     console.warn("Failed to sync readable transactions:", e);
     // Suppress error so main sync doesn't fail
