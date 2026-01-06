@@ -183,8 +183,15 @@ const App: React.FC = () => {
         if (cloudState.dailyStats) setDailyStats(cloudState.dailyStats);
         if (cloudState.dailyAnalyses) setDailyAnalyses(cloudState.dailyAnalyses);
         if (cloudState.weeklyAnalyses) setWeeklyAnalyses(cloudState.weeklyAnalyses);
-        if (cloudState.todos) setTodos(cloudState.todos); // Restore Todos
+        if (cloudState.todos) setTodos(cloudState.todos);
         if (cloudState.timerSessionCount) setTimerSessionCount(cloudState.timerSessionCount);
+
+        // Restore missing fields
+        if (cloudState.goals) setGoals(cloudState.goals);
+        if (cloudState.review) setReview(cloudState.review);
+        if (cloudState.analysis) setAnalysis(cloudState.analysis);
+        if (cloudState.totalFocusMinutes) setTotalFocusMinutes(cloudState.totalFocusMinutes);
+
         if (!silent) {
           // Optional: toast or less intrusive notification
         }
@@ -260,6 +267,10 @@ const App: React.FC = () => {
           weeklyAnalyses,
           todos, // Save Todos
           timerSessionCount, // Save Session Count
+          goals, // Save Goals
+          review, // Save Review
+          analysis, // Save Analysis
+          totalFocusMinutes, // Save Total Focus Minutes
         };
         saveAppStateToSheet(currentStateToSave)
           .then(() => console.log("Auto-saved to cloud."))
@@ -268,7 +279,7 @@ const App: React.FC = () => {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [tasks, transactions, routine, dailyStats, dailyAnalyses, weeklyAnalyses, todos, timerSessionCount, isGoogleSynced]);
+  }, [tasks, transactions, routine, dailyStats, dailyAnalyses, weeklyAnalyses, todos, timerSessionCount, goals, review, analysis, totalFocusMinutes, isGoogleSynced]);
 
   const saveToHistory = useCallback(() => {
     if (isUndoingRef.current) return;
