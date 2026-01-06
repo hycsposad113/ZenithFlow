@@ -18,7 +18,9 @@ interface ReflectionTabProps {
 export const ReflectionTab: React.FC<ReflectionTabProps> = ({ tasks, setTasks, analysis, setAnalysis, dailyStats, knowledge, selectedDate }) => {
   const [loading, setLoading] = useState(false);
 
-  const selectedDateStr = selectedDate.toISOString().split('T')[0];
+  // Fix date string to match local date logic in App.tsx
+  const offset = selectedDate.getTimezoneOffset() * 60000;
+  const selectedDateStr = new Date(selectedDate.getTime() - offset).toISOString().split('T')[0];
   const dateDisplay = selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
   // Filter tasks for the selected date

@@ -41,10 +41,10 @@ export const TodoTab: React.FC<TodoTabProps> = ({ todos, setTodos }) => {
 
     const getQuadrantColor = (q: TodoQuadrant) => {
         switch (q) {
-            case TodoQuadrant.Q1: return 'border-red-400/30 bg-red-400/5';
-            case TodoQuadrant.Q2: return 'border-blue-400/30 bg-blue-400/5';
-            case TodoQuadrant.Q3: return 'border-yellow-400/30 bg-yellow-400/5';
-            case TodoQuadrant.Q4: return 'border-gray-400/30 bg-gray-400/5';
+            case TodoQuadrant.Q1: return 'bg-white/20 border-white/20'; // Urgent & Important
+            case TodoQuadrant.Q2: return 'bg-white/10 border-white/10'; // Important & Not Urgent
+            case TodoQuadrant.Q3: return 'bg-white/5 border-white/5';   // Urgent & Not Important
+            case TodoQuadrant.Q4: return 'bg-black/20 border-white/5';  // Not Urgent & Not Important
         }
     };
 

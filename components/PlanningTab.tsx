@@ -27,15 +27,40 @@ interface PlanningTabProps {
   setSelectedDate: React.Dispatch<React.SetStateAction<Date>>;
 }
 
+const MANTRAS = [
+  "The ability to choose cannot be taken away—it can only be forgotten.",
+  "Discern the vital few from the trivial many.",
+  "Focus is not saying yes, it is saying no.",
+  "What you do today is your future.",
+  "Discipline is freedom.",
+  "Don't wish it were easier, wish you were better.",
+  "Small daily improvements are the key to staggering long-term results.",
+  "Action is the foundational key to all success.",
+  "Success is the sum of small efforts, repeated day in and day out.",
+  "The secret of getting ahead is getting started."
+];
+
 export const PlanningTab: React.FC<PlanningTabProps> = ({
   tasks, setTasks, events, setEvents, routine, setRoutine, analysis, dailyAnalyses = {}, dailyStats, setDailyStats, knowledge, totalFocusMinutes = 0,
   selectedDate, setSelectedDate
 }) => {
   const [loading, setLoading] = useState(false);
-  const [mantra, setMantra] = useState("The ability to choose cannot be taken away—it can only be forgotten. Discern the vital few from the trivial many.");
-  const [editingId, setEditingId] = useState<{ id: string, isEvent: boolean } | null>(null);
+  const offset = selectedDate.getTimezoneOffset() * 60000;
+  const selectedDateStr = new Date(selectedDate.getTime() - offset).toISOString().split('T')[0];
 
-  const selectedDateStr = selectedDate.toISOString().split('T')[0];
+  const [mantra, setMantra] = useState(() => {
+    // Pick consistent mantra for the date
+    const hash = selectedDateStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return MANTRAS[hash % MANTRAS.length];
+  });
+
+  // Update mantra if date changes
+  useEffect(() => {
+    const hash = selectedDateStr.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    setMantra(MANTRAS[hash % MANTRAS.length]);
+  }, [selectedDateStr]);
+
+  const [editingId, setEditingId] = useState<{ id: string, isEvent: boolean } | null>(null);
   const dateString = selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
   const weekday = selectedDate.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
 

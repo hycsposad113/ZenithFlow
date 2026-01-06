@@ -14,6 +14,14 @@ import { Home, BarChart2, TrendingUp, Calendar, Target, Timer, Clock, Menu, X, R
 import { initGoogleAuth, signIn, fetchGoogleEvents, syncDailyStatsToSheet, saveAppStateToSheet, loadAppStateFromSheet } from './services/googleCalendarService';
 import { TodoTab } from './components/TodoTab';
 
+// Helper for local date YYYY-MM-DD
+const getLocalDate = () => {
+  const d = new Date();
+  const offset = d.getTimezoneOffset() * 60000;
+  const localISOTime = (new Date(d.getTime() - offset)).toISOString().slice(0, 10);
+  return localISOTime;
+};
+
 enum Tab {
   PLANNING = 'planning',
   REFLECTION = 'reflection',
@@ -44,6 +52,7 @@ interface AppState {
   dailyStats: Record<string, DailyStats>;
   totalFocusMinutes: number;
   todos: TodoItem[]; // New State persistence
+  timerSessionCount: number; // Persist session count
 }
 
 const App: React.FC = () => {
@@ -60,7 +69,7 @@ const App: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [goals, setGoals] = useState<string[]>(['', '', '']);
-  const [routine, setRoutine] = useState({ wake: '07:30', meditation: false, exercise: false });
+  const [routine, setRoutine] = useState({ wake: '06:30', meditation: false, exercise: false });
   const [todos, setTodos] = useState<TodoItem[]>([]); // New State
 
   // Shared Date State
@@ -102,6 +111,9 @@ const App: React.FC = () => {
       setIsTimerActive(false);
       updateFocusMinutes((prev: number) => prev + 25);
       setTimerSessionCount((prev) => prev + 1);
+      // Play sound
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      audio.play().catch(e => console.log('Audio play failed', e));
       setTimeLeft(25 * 60);
     }
   }, [timeLeft, isTimerActive]);
@@ -172,6 +184,7 @@ const App: React.FC = () => {
         if (cloudState.dailyAnalyses) setDailyAnalyses(cloudState.dailyAnalyses);
         if (cloudState.weeklyAnalyses) setWeeklyAnalyses(cloudState.weeklyAnalyses);
         if (cloudState.todos) setTodos(cloudState.todos); // Restore Todos
+        if (cloudState.timerSessionCount) setTimerSessionCount(cloudState.timerSessionCount);
         if (!silent) {
           // Optional: toast or less intrusive notification
         }
@@ -182,7 +195,7 @@ const App: React.FC = () => {
 
       // Auto-convert Google Events for TODAY to Tasks so they appear in Review
       // We only convert if they don't already exist in tasks
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = getLocalDate();
       setTasks(currentTasks => {
         const newTasks = [...currentTasks];
         let added = false;
@@ -227,6 +240,8 @@ const App: React.FC = () => {
       }
       setIsGoogleSynced(false);
       // Don't remove 'is_google_synced' here, so user can retry manually
+    } finally {
+      setIsRestoring(false);
     }
   };
 
@@ -244,6 +259,7 @@ const App: React.FC = () => {
           dailyAnalyses,
           weeklyAnalyses,
           todos, // Save Todos
+          timerSessionCount, // Save Session Count
         };
         saveAppStateToSheet(currentStateToSave)
           .then(() => console.log("Auto-saved to cloud."))
@@ -252,7 +268,7 @@ const App: React.FC = () => {
 
       return () => clearTimeout(timeoutId);
     }
-  }, [tasks, transactions, routine, dailyStats, dailyAnalyses, weeklyAnalyses, todos, isGoogleSynced]);
+  }, [tasks, transactions, routine, dailyStats, dailyAnalyses, weeklyAnalyses, todos, timerSessionCount, isGoogleSynced]);
 
   const saveToHistory = useCallback(() => {
     if (isUndoingRef.current) return;
@@ -269,9 +285,10 @@ const App: React.FC = () => {
       dailyStats: { ...dailyStats },
       totalFocusMinutes,
       todos: [...todos],
+      timerSessionCount,
     };
     historyRef.current = [...historyRef.current.slice(-49), snapshot];
-  }, [tasks, transactions, events, goals, routine, review, analysis, dailyAnalyses, weeklyAnalyses, dailyStats, totalFocusMinutes, todos]);
+  }, [tasks, transactions, events, goals, routine, review, analysis, dailyAnalyses, weeklyAnalyses, dailyStats, totalFocusMinutes, todos, timerSessionCount]);
 
   const undo = useCallback(() => {
     if (historyRef.current.length === 0) return;
@@ -289,6 +306,7 @@ const App: React.FC = () => {
     setDailyStats(lastState.dailyStats);
     setTotalFocusMinutes(lastState.totalFocusMinutes);
     setTodos(lastState.todos || []);
+    setTimerSessionCount(lastState.timerSessionCount || 0);
     setTimeout(() => { isUndoingRef.current = false; }, 10);
   }, []);
 
