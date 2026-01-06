@@ -14,10 +14,11 @@ interface WeeklyTabProps {
   weeklyAnalyses?: Record<string, any>;
   dailyStats: Record<string, DailyStats>;
   onWeeklySynthesis?: (weekStart: string, result: any) => void;
+  onCreateEvent?: (title: string, date: string, startTime: string, durationMinutes: number) => Promise<void>;
 }
 
 export const WeeklyTab: React.FC<WeeklyTabProps> = ({
-  events, setEvents, tasks, setTasks, dailyAnalyses, weeklyAnalyses = {}, dailyStats, onWeeklySynthesis
+  events, setEvents, tasks, setTasks, dailyAnalyses, weeklyAnalyses = {}, dailyStats, onWeeklySynthesis, onCreateEvent
 }) => {
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
     const d = new Date();
@@ -124,11 +125,16 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({
     return e - s;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.title || !selectedDate) return;
     if (editingId) {
       setTasks(prev => prev.map(t => t.id === editingId ? { ...t, title: formData.title, type: formData.type as TaskType, durationMinutes: formData.durationMinutes, scheduledTime: formData.startTime, date: selectedDate } : t));
     } else {
+      if (formData.type === TaskType.EVENT && onCreateEvent) {
+        await onCreateEvent(formData.title, selectedDate, formData.startTime, formData.durationMinutes);
+        setIsModalOpen(false);
+        return;
+      }
       const newTask: Task = { id: `task-${Date.now()}`, title: formData.title, date: selectedDate, type: formData.type as TaskType, durationMinutes: formData.durationMinutes, scheduledTime: formData.startTime, status: TaskStatus.PLANNED, isEssential: false, subTasks: [], origin: 'planning' };
       setTasks(prev => [...prev, newTask]);
     }

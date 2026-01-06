@@ -11,7 +11,7 @@ import { CalendarRail } from './components/CalendarRail';
 import { Login } from './components/Login';
 import { Task, Transaction, CalendarEvent, DailyStats, TaskType, TaskStatus, EventType, TodoItem } from './types';
 import { Home, BarChart2, TrendingUp, Calendar, Target, Timer, Clock, Menu, X, RefreshCw, CheckSquare } from 'lucide-react';
-import { initGoogleAuth, signIn, fetchGoogleEvents, syncDailyStatsToSheet, saveAppStateToSheet, loadAppStateFromSheet } from './services/googleCalendarService';
+import { initGoogleAuth, signIn, fetchGoogleEvents, syncDailyStatsToSheet, saveAppStateToSheet, loadAppStateFromSheet, pushToGoogleCalendar } from './services/googleCalendarService';
 import { TodoTab } from './components/TodoTab';
 
 // Helper for local date YYYY-MM-DD
@@ -168,6 +168,27 @@ const App: React.FC = () => {
 
     restoreSession();
   }, [isAuthenticated]);
+
+  const handleCreateGoogleEvent = async (title: string, date: string, startTime: string, durationMinutes: number) => {
+    try {
+      const newId = await pushToGoogleCalendar(title, date, startTime, durationMinutes);
+      // Optimistic update
+      const newEvent: CalendarEvent = {
+        id: newId,
+        googleEventId: newId,
+        title,
+        date,
+        startTime,
+        durationMinutes,
+        type: EventType.OTHER,
+        notes: 'Created via ZenithFlow'
+      };
+      setEvents(prev => [...prev, newEvent]);
+    } catch (e) {
+      console.error("Failed to create Google Event", e);
+      alert("Failed to sync event to Google Calendar.");
+    }
+  };
 
   const syncGoogle = async (silent = false) => {
     try {
@@ -543,6 +564,7 @@ const App: React.FC = () => {
                   setTasks={setUndoableTasks}
                   dailyAnalyses={dailyAnalyses}
                   weeklyAnalyses={weeklyAnalyses}
+                  onCreateEvent={handleCreateGoogleEvent}
                 />
               </div>
             )}
@@ -559,6 +581,7 @@ const App: React.FC = () => {
                   onWeeklySynthesis={(weekStart, result) => {
                     setWeeklyAnalyses(prev => ({ ...prev, [weekStart]: result }));
                   }}
+                  onCreateEvent={handleCreateGoogleEvent}
                 />
               </div>
             )}

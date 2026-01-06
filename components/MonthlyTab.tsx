@@ -11,9 +11,10 @@ interface MonthlyTabProps {
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   dailyAnalyses: Record<string, any>;
   weeklyAnalyses: Record<string, any>;
+  onCreateEvent?: (title: string, date: string, startTime: string, durationMinutes: number) => Promise<void>;
 }
 
-export const MonthlyTab: React.FC<MonthlyTabProps> = ({ events, setEvents, tasks, setTasks, dailyAnalyses, weeklyAnalyses }) => {
+export const MonthlyTab: React.FC<MonthlyTabProps> = ({ events, setEvents, tasks, setTasks, dailyAnalyses, weeklyAnalyses, onCreateEvent }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [dayViewDate, setDayViewDate] = useState<string | null>(null);
@@ -81,8 +82,16 @@ export const MonthlyTab: React.FC<MonthlyTabProps> = ({ events, setEvents, tasks
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.title || !selectedDate) return;
+
+    if (formData.type === TaskType.EVENT && onCreateEvent) {
+      await onCreateEvent(formData.title, selectedDate, formData.scheduledTime || '09:00', parseInt(String(formData.durationMinutes)) || 60);
+      setIsCreateModalOpen(false);
+      setFormData({ title: '', scheduledTime: '09:00', durationMinutes: 60, type: TaskType.GOAL });
+      return;
+    }
+
     const newTask: Task = {
       id: `task-${Date.now()}`,
       title: formData.title,
