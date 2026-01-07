@@ -419,12 +419,13 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo]);
 
+  // Sync Analysis display when Date changes
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    if (dailyAnalyses[today]) {
-      setAnalysis(dailyAnalyses[today]);
-    }
-  }, [dailyAnalyses]);
+    const offset = selectedDate.getTimezoneOffset() * 60000;
+    const dateStr = new Date(selectedDate.getTime() - offset).toISOString().split('T')[0];
+
+    setAnalysis(dailyAnalyses[dateStr] || null);
+  }, [selectedDate, dailyAnalyses]);
 
   if (!isAuthenticated) {
     return <Login onLogin={handleLogin} />;
@@ -498,39 +499,42 @@ const App: React.FC = () => {
                   setTasks={setUndoableTasks}
                   analysis={analysis}
                   setAnalysis={(newAnalysis) => {
+                    // Use selectedDate properly converted to local YYYY-MM-DD
+                    const offset = selectedDate.getTimezoneOffset() * 60000;
+                    const dateStr = new Date(selectedDate.getTime() - offset).toISOString().split('T')[0];
+
                     setAnalysis(newAnalysis as any);
-                    const today = new Date().toISOString().split('T')[0];
 
                     if (newAnalysis) {
-                      setDailyAnalyses(prev => ({ ...prev, [today]: newAnalysis as any }));
+                      setDailyAnalyses(prev => ({ ...prev, [dateStr]: newAnalysis as any }));
                     } else {
                       // Handle deletion
                       setDailyAnalyses(prev => {
                         const next = { ...prev };
-                        delete next[today];
+                        delete next[dateStr];
                         return next;
                       });
                     }
 
                     // Auto-sync to Google Sheet (even if null to clear the row)
-                    const currentStats = dailyStats[today] || {
-                      date: today,
+                    const currentStats = dailyStats[dateStr] || {
+                      date: dateStr,
                       wakeTime: routine.wake,
                       focusMinutes: 0,
                       completionRate: 0
                     };
 
-                    const todayTasks = tasks.filter(t => t.date === today && t.origin !== 'template');
-                    const completed = todayTasks.filter(t => t.status === 'Completed').length;
-                    const total = todayTasks.length;
+                    const daysTasks = tasks.filter(t => t.date === dateStr && t.origin !== 'template');
+                    const completed = daysTasks.filter(t => t.status === 'Completed').length;
+                    const total = daysTasks.length;
                     const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-                    const detailedReflections = todayTasks
+                    const detailedReflections = daysTasks
                       .filter(t => t.reflection && t.reflection.trim().length > 0)
                       .map(t => `[${t.title}]: ${t.reflection}`)
                       .join('\n');
 
-                    syncDailyStatsToSheet(today, {
+                    syncDailyStatsToSheet(dateStr, {
                       wakeTime: currentStats.wakeTime || routine.wake,
                       meditation: currentStats.meditation ?? routine.meditation,
                       exercise: currentStats.exercise ?? routine.exercise,
@@ -538,9 +542,9 @@ const App: React.FC = () => {
                       completionRate: rate
                     }, newAnalysis ? {
                       ...newAnalysis,
-                      reflection: detailedReflections // Add user reflections to the record
+                      reflection: detailedReflections
                     } : {
-                      reflection: detailedReflections, // Preserve user reflections even if deleted
+                      reflection: detailedReflections,
                       insight: '', concept: '', actionItem: ''
                     }).then(() => console.log('Synced (Update/Delete) to Sheet')).catch(e => console.error(e));
                   }}
