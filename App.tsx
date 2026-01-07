@@ -581,7 +581,7 @@ const App: React.FC = () => {
                     };
 
                     const daysTasks = tasks.filter(t => t.date === dateStr && t.origin !== 'template');
-                    const completed = daysTasks.filter(t => t.status === 'Completed').length;
+                    const completed = daysTasks.filter(t => t.status === TaskStatus.COMPLETED).length;
                     const total = daysTasks.length;
                     const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
