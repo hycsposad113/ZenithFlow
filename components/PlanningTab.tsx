@@ -183,7 +183,8 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
   // So if selectedDate is X, we want the analysis from X-1.
   const prevDate = new Date(selectedDate);
   prevDate.setDate(prevDate.getDate() - 1);
-  const prevDateStr = prevDate.toISOString().split('T')[0];
+  const offsetPrev = prevDate.getTimezoneOffset() * 60000;
+  const prevDateStr = new Date(prevDate.getTime() - offsetPrev).toISOString().split('T')[0];
   const displayAnalysis = dailyAnalyses[prevDateStr] || null;
 
   const handleMorningRitual = async () => {
