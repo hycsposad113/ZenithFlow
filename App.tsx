@@ -297,7 +297,7 @@ const App: React.FC = () => {
         saveAppStateToSheet(currentStateToSave)
           .then(() => console.log("Auto-saved AppState to cloud."))
           .catch(e => console.error("Auto-save AppState failed:", e));
-      }, 30000); // 30 second debounce for heavy save
+      }, 3000); // 3 second debounce (Reduced from 30s to fix "reload data loss")
 
       return () => clearTimeout(timeoutId);
     }
@@ -342,7 +342,7 @@ const App: React.FC = () => {
           .then(() => console.log("Synced Daily Log to Sheet"))
           .catch(e => console.error("Daily Log Sync failed:", e));
 
-      }, 5000); // 5 second debounce
+      }, 3000); // 3 second debounce (Reduced from 5s)
 
       return () => clearTimeout(timeoutId);
     }
