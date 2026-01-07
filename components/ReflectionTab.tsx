@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Task, KnowledgeItem } from '../types';
+import { Task, KnowledgeItem, TaskStatus } from '../types';
 import { Button } from './Button';
 import { analyzeDailyReflection } from '../services/geminiService';
 import { Trash2 } from 'lucide-react';
@@ -36,7 +36,23 @@ export const ReflectionTab: React.FC<ReflectionTabProps> = ({ tasks, setTasks, a
 
   const runAnalysis = async () => {
     setLoading(true);
-    const todaysStats = dailyStats[selectedDateStr]; // Pass undefined if missing, service handles it
+    // Calculate real-time stats for the reflection day to ensure accuracy 
+    const completedCount = todaysTasks.filter(t => t.status === TaskStatus.COMPLETED).length;
+    const totalCount = todaysTasks.length;
+    const realtimeCompletionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+    const todaysStats = dailyStats[selectedDateStr] || {
+      date: selectedDateStr,
+      wakeTime: "N/A",
+      focusMinutes: 0,
+      completionRate: realtimeCompletionRate, // Use real-time calculation
+      meditation: false,
+      exercise: false
+    };
+
+    // Override completion rate with real-time data just in case
+    todaysStats.completionRate = realtimeCompletionRate;
+
     try {
       const result = await analyzeDailyReflection(todaysTasks, knowledge, todaysStats);
       setAnalysis(result);
