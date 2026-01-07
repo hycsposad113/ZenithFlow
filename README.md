@@ -8,6 +8,10 @@ This contains everything you need to run your app locally.
 
 View your app in AI Studio: https://ai.studio/apps/drive/1SVQ1njcI_ibnZQkAVxfPl3wx9yL2OfOY
 
+## Security 🔒
+
+**Important:** If you receive an API Key exposure warning, please read [SECURITY.md](./SECURITY.md) immediately for instructions on how to properly restrict your API key for client-side usage.
+
 ## Run Locally
 
 **Prerequisites:**  Node.js
