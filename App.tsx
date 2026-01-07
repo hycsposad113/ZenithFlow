@@ -200,7 +200,13 @@ const App: React.FC = () => {
       if (cloudState) {
         if (cloudState.tasks) setTasks(cloudState.tasks);
         if (cloudState.transactions) setTransactions(cloudState.transactions);
-        if (cloudState.routine) setRoutine(cloudState.routine);
+        if (cloudState.routine) {
+          // Hotfix: Reset stuck default time of 11:50 back to 06:30 as requested
+          if (cloudState.routine.wake === '11:50') {
+            cloudState.routine.wake = '06:30';
+          }
+          setRoutine(cloudState.routine);
+        }
         if (cloudState.dailyStats) setDailyStats(cloudState.dailyStats);
         if (cloudState.dailyAnalyses) setDailyAnalyses(cloudState.dailyAnalyses);
         if (cloudState.weeklyAnalyses) setWeeklyAnalyses(cloudState.weeklyAnalyses);
