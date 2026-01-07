@@ -1,5 +1,6 @@
 
 import { CalendarEvent, EventType } from "../types";
+import LZString from 'lz-string';
 
 // NOTE: Jack needs to provide a valid Client ID from Google Cloud Console
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -527,9 +528,16 @@ const syncTransactions = async (spreadsheetId: string, transactions: any[]) => {
   }
 };
 
+
+
+// ... (keep existing imports)
+
+// ... (keep existing code up to saveAppStateToSheet)
+
 /**
  * Saves the entire application state (tasks, routine, etc.) to a specific sheet.
  * Acts as a "Cloud Save" so mobile and desktop stay in sync.
+ * NOW WITH COMPRESSION (LZ-String) to multiply capacity by ~10x.
  */
 export const saveAppStateToSheet = async (state: any) => {
   try {
@@ -558,16 +566,22 @@ export const saveAppStateToSheet = async (state: any) => {
       });
     }
 
-    // 2. Save state as COMPRESSED chunks (actually just split string to avoid cell limit)
-    // Cell limit is 50k chars. We split into 40k chunks to be safe.
+    // 2. Save state as COMPRESSED chunks
     const jsonState = JSON.stringify(state);
+
+    // NEW: Compress the JSON string
+    const compressed = LZString.compressToEncodedURIComponent(jsonState);
+
+    console.log(`Original Size: ${Math.ceil(jsonState.length / 1024)}KB, Compressed: ${Math.ceil(compressed.length / 1024)}KB`);
+
+    // Cell limit is 50k chars. safe chunk size 40k.
     const CHUNK_SIZE = 40000;
     const chunks = [];
-    for (let i = 0; i < jsonState.length; i += CHUNK_SIZE) {
-      chunks.push([jsonState.slice(i, i + CHUNK_SIZE)]);
+    for (let i = 0; i < compressed.length; i += CHUNK_SIZE) {
+      chunks.push([compressed.slice(i, i + CHUNK_SIZE)]);
     }
 
-    // Clear existing data to avoid corruption if new data is shorter
+    // Clear existing data 
     // @ts-ignore
     await gapi.client.sheets.spreadsheets.values.clear({
       spreadsheetId,
@@ -583,12 +597,12 @@ export const saveAppStateToSheet = async (state: any) => {
       resource: { values: chunks }
     });
 
-    // 3. Sync Readable Transactions
+    // 3. Sync Readable Transactions (Still do this for visibility)
     if (state.transactions && Array.isArray(state.transactions)) {
       await syncTransactions(spreadsheetId, state.transactions);
     }
 
-    console.log(`App state saved to cloud! (${Math.ceil(jsonState.length / 1024)} KB)`);
+    console.log(`App state saved to cloud!`);
   } catch (e) {
     console.error("Error saving app state:", e);
     // @ts-ignore
@@ -614,7 +628,23 @@ export const loadAppStateFromSheet = async () => {
     if (rows && rows.length > 0) {
       try {
         // Reassemble chunks
-        const jsonState = rows.map((r: any[]) => r[0] || '').join('');
+        const compressedState = rows.map((r: any[]) => r[0] || '').join('');
+        if (!compressedState) return null;
+
+        // Try Decompressing first
+        let jsonState = LZString.decompressFromEncodedURIComponent(compressedState);
+
+        // Fallback: If decompression returns null/empty, maybe it's legacy uncompressed data?
+        if (!jsonState || !jsonState.startsWith('{')) {
+          console.log("Decompression failed or returned invalid JSON, trying legacy READ...");
+          // In transition period, we might have old data. 
+          // But usually LZString returns null if invalid.
+          // Let's assume if it looks like JSON it WAS uncompressed.
+          if (compressedState.trim().startsWith('{')) {
+            jsonState = compressedState;
+          }
+        }
+
         if (!jsonState) return null;
 
         return JSON.parse(jsonState);

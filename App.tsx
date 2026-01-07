@@ -279,6 +279,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (isGoogleSynced) {
       const timeoutId = setTimeout(() => {
+        // 1. Save App State (JSON Blob)
         const currentStateToSave = {
           tasks,
           transactions,
@@ -294,13 +295,58 @@ const App: React.FC = () => {
           totalFocusMinutes, // Save Total Focus Minutes
         };
         saveAppStateToSheet(currentStateToSave)
-          .then(() => console.log("Auto-saved to cloud."))
-          .catch(e => console.error("Auto-save to cloud failed:", e));
-      }, 2000); // Debounce for 2 seconds
+          .then(() => console.log("Auto-saved AppState to cloud."))
+          .catch(e => console.error("Auto-save AppState failed:", e));
+      }, 30000); // 30 second debounce for heavy save
 
       return () => clearTimeout(timeoutId);
     }
   }, [tasks, transactions, routine, dailyStats, dailyAnalyses, weeklyAnalyses, todos, timerSessionCount, goals, review, analysis, totalFocusMinutes, isGoogleSynced]);
+
+  // 2. Light Sync: Daily Log (Debounced 5s)
+  useEffect(() => {
+    if (isGoogleSynced) {
+      const timeoutId = setTimeout(() => {
+        const todayStr = getLocalDate();
+        const daysTasks = tasks.filter(t => t.date === todayStr && t.origin !== 'template');
+        const completedCount = daysTasks.filter(t => t.status === TaskStatus.COMPLETED).length;
+        const totalCount = daysTasks.length;
+        const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+
+        const currentDayStats = dailyStats[todayStr] || {};
+
+        // Aggregate reflections
+        const detailedReflections = daysTasks
+          .filter(t => t.reflection && t.reflection.trim().length > 0)
+          .map(t => `[${t.title}]: ${t.reflection}`)
+          .join('\n');
+
+        const analysisForDay = dailyAnalyses[todayStr] || {
+          reflection: '', insight: '', concept: '', actionItem: ''
+        };
+
+        const analysisPayload = {
+          ...analysisForDay,
+          reflection: detailedReflections || analysisForDay.reflection || ''
+        };
+
+        const syncPayload = {
+          wakeTime: currentDayStats.wakeTime || routine.wake,
+          meditation: currentDayStats.meditation ?? routine.meditation,
+          exercise: currentDayStats.exercise ?? routine.exercise,
+          focusMinutes: currentDayStats.focusMinutes || 0,
+          completionRate
+        };
+
+        syncDailyStatsToSheet(todayStr, syncPayload, analysisPayload)
+          .then(() => console.log("Synced Daily Log to Sheet"))
+          .catch(e => console.error("Daily Log Sync failed:", e));
+
+      }, 5000); // 5 second debounce
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [tasks, routine, dailyStats, dailyAnalyses, isGoogleSynced]);
 
   const saveToHistory = useCallback(() => {
     if (isUndoingRef.current) return;
@@ -366,18 +412,28 @@ const App: React.FC = () => {
 
   // Sync Routine to Daily Stats
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
-    setDailyStats(prev => ({
-      ...prev,
-      [today]: {
-        date: today,
-        wakeTime: routine.wake,
-        meditation: routine.meditation,
-        exercise: routine.exercise,
-        focusMinutes: prev[today]?.focusMinutes || 0,
-        completionRate: prev[today]?.completionRate || 0
+    // FIX: Use local date to ensure we are looking at the correct day key
+    const today = getLocalDate();
+
+    setDailyStats(prev => {
+      // FIX: Only initialize if it DOES NOT exist. 
+      // This prevents overwriting user's modified Wake Time with the default routine on every reload.
+      if (prev[today]) {
+        return prev;
       }
-    }));
+
+      return {
+        ...prev,
+        [today]: {
+          date: today,
+          wakeTime: routine.wake,
+          meditation: routine.meditation,
+          exercise: routine.exercise,
+          focusMinutes: 0,
+          completionRate: 0
+        }
+      };
+    });
   }, [routine]);
 
   // Wrapper for Focus Updates to track daily delta

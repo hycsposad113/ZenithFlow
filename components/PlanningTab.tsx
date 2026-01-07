@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Task, TaskType, TaskStatus, KnowledgeItem, CalendarEvent, EventType, DailyStats } from '../types';
 import { Button } from './Button';
 import { generateDailyRitual } from '../services/geminiService';
-import { deleteGoogleEvent, updateGoogleEvent } from '../services/googleCalendarService';
+import { deleteGoogleEvent, updateGoogleEvent, syncDailyStatsToSheet } from '../services/googleCalendarService';
 import {
   Zap, Trash2, CheckCircle2, Circle, X, Clock, Sunrise, Brain, Dumbbell
 } from 'lucide-react';
@@ -71,20 +71,22 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
   const isExerciseDone = currentDailyStats?.exercise ?? routine.exercise;
 
   const handleRoutineUpdate = (field: 'wakeTime' | 'meditation' | 'exercise', value: any) => {
-    setDailyStats(prev => {
-      const existing = prev[selectedDateStr] || {
-        date: selectedDateStr,
-        completionRate: 0, // Default
-        focusMinutes: 0, // Default
-        wakeTime: routine.wake,
-        meditation: routine.meditation,
-        exercise: routine.exercise
-      };
+    // FIX: Define existing in outer scope so we can use it for Sync
+    const existing = dailyStats[selectedDateStr] || {
+      date: selectedDateStr,
+      completionRate: 0,
+      focusMinutes: 0,
+      wakeTime: routine.wake,
+      meditation: routine.meditation,
+      exercise: routine.exercise
+    };
 
+    setDailyStats(prev => {
+      // Use the existing logic or fresh if needed, but we have it calculated above
       return {
         ...prev,
         [selectedDateStr]: {
-          ...existing,
+          ...(prev[selectedDateStr] || existing),
           [field]: value
         }
       };
@@ -101,6 +103,29 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
       const routineField = field === 'wakeTime' ? 'wake' : field;
       setRoutine(prev => ({ ...prev, [routineField]: value }));
     }
+
+    // FIX: Trigger Sync to Sheet immediately
+    const updatedStats = {
+      ...existing,
+      [field]: value
+    };
+
+    // Check if we need to pass analysis
+    const associatedAnalysis = dailyAnalyses[selectedDateStr] || {
+      reflection: '', insight: '', concept: '', actionItem: ''
+    };
+
+    syncDailyStatsToSheet(
+      selectedDateStr,
+      {
+        wakeTime: updatedStats.wakeTime,
+        meditation: updatedStats.meditation,
+        exercise: updatedStats.exercise,
+        focusMinutes: updatedStats.focusMinutes,
+        completionRate: updatedStats.completionRate
+      },
+      associatedAnalysis
+    ).catch(console.error);
   };
 
   // Helper to change date
