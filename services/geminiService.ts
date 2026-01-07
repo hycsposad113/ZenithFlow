@@ -151,7 +151,6 @@ export const analyzeDailyReflection = async (tasks: Task[], knowledgeBase: Knowl
     Analyze Jack's day:
     Context (Stats):
     - Wake Up Time: ${dailyStats?.wakeTime || "N/A"}
-    - Focus Minutes (Deep Work): ${dailyStats?.focusMinutes || 0}
     - Completion Rate: ${dailyStats?.completionRate || 0}%
     - Routine: Meditation=${dailyStats?.meditation ? 'YES' : 'NO'}, Exercise=${dailyStats?.exercise ? 'YES' : 'NO'}
 
