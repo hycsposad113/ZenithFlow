@@ -117,8 +117,8 @@ export const generateDailyRitual = async (currentTasks: Task[], events: Calendar
     - **Dinner/Rest**: 17:30 - 19:30 -> LEAVE BLANK.
     - **Night**: 19:30 - 22:10 -> Self Study / Deep Work.
     - **Wind Down (MANDATORY)**:
-      - 22:10 - 22:30: Daily Review.
-      - 22:30 - 23:00: Reading.
+      - 22:00 - 22:30: Reading.
+      - 22:30 - 23:00: Daily Review.
       - 23:00: Sleep Target.
 
     Current Context:
@@ -129,7 +129,7 @@ export const generateDailyRitual = async (currentTasks: Task[], events: Calendar
     1. **Fill Gaps**: Only suggest *NEW* tasks for empty slots based on the template above.
     2. **Conflict Free**: Do NOT overlap with Fixed Calendar Events.
     3. **Crucial**: If 06:00 - 08:00 is empty, you MUST schedule "AI Practice" and "English Speaking" there.
-    4. **Mandatory Items**: Ensure "Daily Review" (22:10) and "Reading" (22:30) are present if not already there.
+    4. **Mandatory Items**: Ensure "Reading" (22:00) and "Daily Review" (22:30) are present if not already there.
     5. **Mantra Generation**: The 'advice' field MUST be a short, powerful, NEWly generated mantra (NOT from a fixed list) focusing on ONE of these themes:
        - Investment Philosophy & Market Nature
        - Risk Management & Decision Frameworks
