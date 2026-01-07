@@ -152,7 +152,7 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({
           {/* Previous Week */}
           <Button variant="secondary" onClick={() => {
             const d = new Date(currentWeekStart); d.setDate(d.getDate() - 7); setCurrentWeekStart(d);
-          }} className="rounded-full w-10 h-10 p-0 flex items-center justify-center">
+          }} className="rounded-full w-10 h-10 !p-0 flex items-center justify-center">
             <ArrowLeft className="w-5 h-5 text-white" strokeWidth={2.5} />
           </Button>
 
@@ -170,7 +170,7 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({
           {/* Next Week */}
           <Button variant="secondary" onClick={() => {
             const d = new Date(currentWeekStart); d.setDate(d.getDate() + 7); setCurrentWeekStart(d);
-          }} className="rounded-full w-10 h-10 p-0 flex items-center justify-center">
+          }} className="rounded-full w-10 h-10 !p-0 flex items-center justify-center">
             <ArrowRight className="w-5 h-5 text-white" strokeWidth={2.5} />
           </Button>
         </div>
