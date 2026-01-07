@@ -130,7 +130,18 @@ export const generateDailyRitual = async (currentTasks: Task[], events: Calendar
     2. **Conflict Free**: Do NOT overlap with Fixed Calendar Events.
     3. **Crucial**: If 06:00 - 08:00 is empty, you MUST schedule "AI Practice" and "English Speaking" there.
     4. **Mandatory Items**: Ensure "Daily Review" (22:10) and "Reading" (22:30) are present if not already there.
-    5. **Output**: Only return the NEW tasks to be added.
+    5. **Mantra Generation**: The 'advice' field MUST be a short, powerful, NEWly generated mantra (NOT from a fixed list) focusing on ONE of these themes:
+       - Investment Philosophy & Market Nature
+       - Risk Management & Decision Frameworks
+       - Investment Psychology & Behavioral Biases
+       - Wealth Perception & Personal Finance
+       - Foundational Thinking & Identity Building
+       - Goal Setting & Planning Systems
+       - Execution & Habit Formation
+       - Learning & Mastery (Deep Work)
+       - Energy Management
+       - Interpersonal Synergy
+    6. **Output**: Only return the NEW tasks to be added and the unique advice.
   `;
 
   const response = await getAI().models.generateContent({
