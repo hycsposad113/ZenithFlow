@@ -413,7 +413,6 @@ Output Style:
     Analyze Jack's day:
     Context (Stats):
     - Wake Up Time: ${(n==null?void 0:n.wakeTime)||"N/A"}
-    - Focus Minutes (Deep Work): ${(n==null?void 0:n.focusMinutes)||0}
     - Completion Rate: ${(n==null?void 0:n.completionRate)||0}%
     - Routine: Meditation=${n!=null&&n.meditation?"YES":"NO"}, Exercise=${n!=null&&n.exercise?"YES":"NO"}
 
