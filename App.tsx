@@ -552,6 +552,39 @@ const App: React.FC = () => {
                 totalFocusMinutes={totalFocusMinutes}
                 selectedDate={selectedDate}
                 setSelectedDate={setSelectedDate}
+                onUpdateAnalysis={(dateStr, newAnalysis) => {
+                  setDailyAnalyses(prev => ({ ...prev, [dateStr]: newAnalysis }));
+
+                  // Auto-sync to Sheet
+                  const currentStats = dailyStats[dateStr] || {
+                    date: dateStr,
+                    wakeTime: routine.wake,
+                    focusMinutes: 0,
+                    completionRate: 0
+                  };
+
+                  // We need to calculate completion rate for the day we are updating
+                  const daysTasks = tasks.filter(t => t.date === dateStr && t.origin !== 'template');
+                  const completed = daysTasks.filter(t => t.status === TaskStatus.COMPLETED).length;
+                  const total = daysTasks.length;
+                  const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+                  const detailedReflections = daysTasks
+                    .filter(t => t.reflection && t.reflection.trim().length > 0)
+                    .map(t => `[${t.title}]: ${t.reflection}`)
+                    .join('\n');
+
+                  syncDailyStatsToSheet(dateStr, {
+                    wakeTime: currentStats.wakeTime || routine.wake,
+                    meditation: currentStats.meditation ?? routine.meditation,
+                    exercise: currentStats.exercise ?? routine.exercise,
+                    focusMinutes: currentStats.focusMinutes,
+                    completionRate: rate
+                  }, {
+                    ...newAnalysis,
+                    reflection: detailedReflections || newAnalysis.reflection || ''
+                  }).catch(console.error);
+                }}
               />
             )}
             {currentTab === Tab.REFLECTION && (
