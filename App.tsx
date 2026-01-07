@@ -207,7 +207,16 @@ const App: React.FC = () => {
           }
           setRoutine(cloudState.routine);
         }
-        if (cloudState.dailyStats) setDailyStats(cloudState.dailyStats);
+        if (cloudState.dailyStats) {
+          // Hotfix: Scrub '11:50' from historical/current daily stats
+          const cleanStats = { ...cloudState.dailyStats };
+          Object.keys(cleanStats).forEach(dateKey => {
+            if (cleanStats[dateKey].wakeTime === '11:50') {
+              cleanStats[dateKey].wakeTime = '06:30';
+            }
+          });
+          setDailyStats(cleanStats);
+        }
         if (cloudState.dailyAnalyses) setDailyAnalyses(cloudState.dailyAnalyses);
         if (cloudState.weeklyAnalyses) setWeeklyAnalyses(cloudState.weeklyAnalyses);
         if (cloudState.todos) setTodos(cloudState.todos);
