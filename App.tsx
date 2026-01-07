@@ -296,7 +296,7 @@ const App: React.FC = () => {
         saveAppStateToSheet(currentStateToSave)
           .then(() => console.log("Auto-saved to cloud."))
           .catch(e => console.error("Auto-save to cloud failed:", e));
-      }, 5000); // Debounce for 5 seconds
+      }, 2000); // Debounce for 2 seconds
 
       return () => clearTimeout(timeoutId);
     }
