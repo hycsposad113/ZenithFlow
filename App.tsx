@@ -251,7 +251,7 @@ const App: React.FC = () => {
               // Create a new task for this event
               // Map EventType to TaskType?
               let tType = TaskType.OTHER;
-              if (evt.type === EventType.WORK) tType = TaskType.LECTURE; // Default work to Lecture/Work?
+              if (evt.type === EventType.WORK || evt.type === EventType.LECTURE) tType = TaskType.LECTURE; // Default work/lecture to Lecture/Work?
 
               newTasks.push({
                 id: evt.id, // Use Google ID as Task ID or similar

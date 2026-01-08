@@ -182,7 +182,7 @@ export const WeeklyTab: React.FC<WeeklyTabProps> = ({
           const isToday = new Date().toLocaleDateString('en-CA') === dateStr;
           // STRICT FILTER: Only show high-level items (Event/Goal) in Weekly View
           const dayTasks = tasks.filter(t => t.date === dateStr && (t.type === TaskType.EVENT || t.type === TaskType.GOAL));
-          const dayEvents = events.filter(e => e.date === dateStr);
+          const dayEvents = events.filter(e => e.date === dateStr && e.type !== EventType.LECTURE);
           const sortedItems = [...dayEvents.map(e => ({ ...e, isEvent: true })), ...dayTasks.map(t => ({ ...t, isEvent: false, startTime: t.scheduledTime || '00:00' }))].sort((a, b) => a.startTime.localeCompare(b.startTime));
 
           return (

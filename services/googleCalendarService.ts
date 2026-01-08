@@ -151,10 +151,11 @@ export const fetchGoogleEvents = async (): Promise<CalendarEvent[]> => {
         // @ts-ignore
         const response = await gapi.client.calendar.events.list({
           calendarId: cal.id,
-          timeMin: (new Date()).toISOString(),
+          // Fetch from 1 month ago to ensure we have context for Monthly/Weekly views
+          timeMin: (new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).toISOString(),
           showDeleted: false,
           singleEvents: true,
-          maxResults: 50,
+          maxResults: 200, // Increased to accommodate wider range
           orderBy: 'startTime',
         });
 
@@ -187,8 +188,8 @@ export const fetchGoogleEvents = async (): Promise<CalendarEvent[]> => {
       const lowerTitle = (event.summary || "").toLowerCase();
       const lowerCal = (event.calendarSummary || "").toLowerCase();
 
-      if (lowerCal.includes('class') || lowerCal.includes('school') || lowerCal.includes('university') || lowerCal.includes('tu delft')) {
-        type = EventType.WORK; // Treat school as work/study
+      if (lowerCal.includes('class') || lowerCal.includes('school') || lowerCal.includes('university') || lowerCal.includes('tu delft') || lowerTitle.includes('lecture') || lowerTitle.includes('studio')) {
+        type = EventType.LECTURE;
       }
 
       return {

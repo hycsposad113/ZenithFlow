@@ -63,6 +63,7 @@ export interface KnowledgeItem {
 
 export enum EventType {
   MEETING = 'Meeting',
+  LECTURE = 'Lecture',
   PREPARATION = 'Preparation',
   DEADLINE = 'Deadline',
   WORK = 'Work',
