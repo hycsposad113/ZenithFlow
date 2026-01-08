@@ -147,7 +147,7 @@ export const MonthlyTab: React.FC<MonthlyTabProps> = ({ events, setEvents, tasks
           const dateStr = `${year}-${mAdjusted}-${dAdjusted}`;
           // STRICT FILTER: Only show high-level items (Event/Goal) in Monthly View
           const dayTasks = tasks.filter(t => t.date === dateStr && (t.type === TaskType.EVENT || t.type === TaskType.GOAL));
-          const dayEvents = events.filter(e => e.date === dateStr && e.type !== EventType.LECTURE && !dayTasks.some(t => t.googleEventId === e.id));
+          const dayEvents = events.filter(e => e.date === dateStr && e.type !== EventType.LECTURE && !tasks.some(t => t.googleEventId === e.id));
           const isToday = new Date().toLocaleDateString('en-CA') === dateStr;
 
           return (
