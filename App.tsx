@@ -37,6 +37,7 @@ interface ReflectionAnalysis {
   bookReference: string;
   concept: string;
   actionItem: string;
+  generalReflection?: string;
 }
 
 interface AppState {
@@ -337,12 +338,17 @@ const App: React.FC = () => {
           .join('\n');
 
         const analysisForDay = dailyAnalyses[todayStr] || {
-          reflection: '', insight: '', concept: '', actionItem: ''
+          reflection: '', insight: '', concept: '', actionItem: '', generalReflection: ''
         };
+
+        const combinedReflection = [
+          analysisForDay.generalReflection ? `[Daily Reflection]: ${analysisForDay.generalReflection}` : '',
+          detailedReflections
+        ].filter(Boolean).join('\n\n');
 
         const analysisPayload = {
           ...analysisForDay,
-          reflection: detailedReflections || analysisForDay.reflection || ''
+          reflection: combinedReflection || ''
         };
 
         const syncPayload = {
@@ -583,6 +589,11 @@ const App: React.FC = () => {
                     .map(t => `[${t.title}]: ${t.reflection}`)
                     .join('\n');
 
+                  const combinedReflection = [
+                    newAnalysis.generalReflection ? `[Daily Reflection]: ${newAnalysis.generalReflection}` : '',
+                    detailedReflections
+                  ].filter(Boolean).join('\n\n');
+
                   syncDailyStatsToSheet(dateStr, {
                     wakeTime: currentStats.wakeTime || routine.wake,
                     meditation: currentStats.meditation ?? routine.meditation,
@@ -591,7 +602,8 @@ const App: React.FC = () => {
                     completionRate: rate
                   }, {
                     ...newAnalysis,
-                    reflection: detailedReflections || newAnalysis.reflection || ''
+                    ...newAnalysis,
+                    reflection: combinedReflection || ''
                   }).catch(console.error);
                 }}
               />
@@ -638,6 +650,11 @@ const App: React.FC = () => {
                       .map(t => `[${t.title}]: ${t.reflection}`)
                       .join('\n');
 
+                    const combinedReflection = [
+                      (newAnalysis as any)?.generalReflection ? `[Daily Reflection]: ${(newAnalysis as any).generalReflection}` : '',
+                      detailedReflections
+                    ].filter(Boolean).join('\n\n');
+
                     syncDailyStatsToSheet(dateStr, {
                       wakeTime: currentStats.wakeTime || routine.wake,
                       meditation: currentStats.meditation ?? routine.meditation,
@@ -646,9 +663,9 @@ const App: React.FC = () => {
                       completionRate: rate
                     }, newAnalysis ? {
                       ...newAnalysis,
-                      reflection: detailedReflections
+                      reflection: combinedReflection
                     } : {
-                      reflection: detailedReflections,
+                      reflection: combinedReflection,
                       insight: '', concept: '', actionItem: ''
                     }).then(() => console.log('Synced (Update/Delete) to Sheet')).catch(e => console.error(e));
                   }}
@@ -709,7 +726,13 @@ const App: React.FC = () => {
             )}
             {currentTab === Tab.TODO && (
               <div className="w-full h-full">
-                <TodoTab todos={todos} setTodos={setUndoableTodos} />
+                <TodoTab
+                  todos={todos}
+                  setTodos={setUndoableTodos}
+                  tasks={tasks}
+                  setTasks={setUndoableTasks}
+                  selectedDate={selectedDate}
+                />
               </div>
             )}
           </div>

@@ -71,6 +71,23 @@ export const ReflectionTab: React.FC<ReflectionTabProps> = ({ tasks, setTasks, a
       </header>
 
       <div className="space-y-6 mb-10">
+        {/* General Reflection Area */}
+        <div className="glass-card p-6 rounded-3xl animate-fade-in mb-8 border border-white/20">
+          <h3 className="text-lg font-bodoni font-bold mb-4">General Reflection</h3>
+          <textarea
+            className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white/90 placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/10 transition-all resize-none h-32"
+            placeholder="How was your day overall? Any big wins or lessons?"
+            value={(analysis as any)?.generalReflection || ''}
+            onChange={(e) => {
+              const newVal = e.target.value;
+              // We need to update analysis even if it is null (create skeleton)
+              setAnalysis(prev => prev ? { ...prev, generalReflection: newVal } : {
+                insight: '', bookReference: '', concept: '', actionItem: '', generalReflection: newVal
+              });
+            }}
+          />
+        </div>
+
         {todaysTasks.length > 0 ? todaysTasks.map(task => (
           <div key={task.id} className="glass-card p-6 rounded-3xl animate-fade-in">
             <div className="flex justify-between items-start mb-6">

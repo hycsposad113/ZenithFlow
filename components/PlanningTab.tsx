@@ -394,8 +394,8 @@ export const PlanningTab: React.FC<PlanningTabProps> = ({
 
         <div className="glass-card p-6 rounded-3xl border border-white/20 flex flex-col items-center justify-center min-h-[160px]">
           <h4 className="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-2 w-full text-left">Deep Focus</h4>
-          <span className="text-4xl font-bodoni font-bold text-white">{totalFocusMinutes}</span>
-          <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest mt-1">Minutes Today</span>
+          <span className="text-4xl font-bodoni font-bold text-white">{currentDailyStats?.focusMinutes || 0}</span>
+          <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest mt-1">Minutes ({dateString})</span>
         </div>
       </div>
 
