@@ -144,11 +144,12 @@ export const generateDailyRitual = async (currentTasks: Task[], events: Calendar
     6. **Output**: Only return the NEW tasks to be added and the unique advice.
   `;
 
+  const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}`;
+
   const response = await getAI().models.generateContent({
     model: 'gemini-1.5-flash',
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
     config: {
-      systemInstruction: { parts: [{ text: ZENITH_SYSTEM_INSTRUCTION }] },
       responseMimeType: "application/json",
       responseSchema: planResponseSchema
     }
@@ -175,11 +176,12 @@ export const analyzeDailyReflection = async (tasks: Task[], knowledgeBase: Knowl
     Quote specific principles from books where relevant.
   `;
 
+  const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}`;
+
   const response = await getAI().models.generateContent({
     model: 'gemini-1.5-flash',
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
     config: {
-      systemInstruction: { parts: [{ text: ZENITH_SYSTEM_INSTRUCTION }] },
       responseMimeType: "application/json",
       responseSchema: reflectionResponseSchema
     }
@@ -207,14 +209,15 @@ export const synthesizePeriodPerformance = async (insights: any[], period: 'Week
     Identify focus-leaks using "Deep Work", and suggest strategic shifts for the next ${period}.
   `;
 
+  const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}`;
+
   const response = await getAI().models.generateContent({
     model: 'gemini-1.5-flash',
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
     config: {
-      systemInstruction: { parts: [{ text: ZENITH_SYSTEM_INSTRUCTION }] },
       responseMimeType: "application/json",
       responseSchema: periodSynthesisSchema
-    } // ... rest of config
+    }
   });
 
   return parseJSON(response.text || "{}");
@@ -228,11 +231,12 @@ export const analyzeFinancialPeriod = async (transactions: Transaction[], period
     Focus on pattern recognition and the "Vital Few" vs "Trivial Many".
   `;
 
+  const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}`;
+
   const response = await getAI().models.generateContent({
     model: 'gemini-1.5-flash',
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
     config: {
-      systemInstruction: { parts: [{ text: ZENITH_SYSTEM_INSTRUCTION }] },
       responseMimeType: "application/json",
       responseSchema: financeAnalysisResponseSchema
     }
@@ -249,11 +253,12 @@ export const analyzeTotalFinancialStatus = async (transactions: Transaction[]) =
     Provide a unified status and a specific actionable step.
   `;
 
+  const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}`;
+
   const response = await getAI().models.generateContent({
     model: 'gemini-1.5-flash',
-    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
     config: {
-      systemInstruction: { parts: [{ text: ZENITH_SYSTEM_INSTRUCTION }] },
       responseMimeType: "application/json",
       responseSchema: financeAnalysisResponseSchema
     }
