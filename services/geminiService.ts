@@ -12,8 +12,8 @@ const getAI = () => {
     if (!apiKey) {
       throw new Error("VITE_GEMINI_API_KEY is missing mapping. Please check your .env file.");
     }
-    // Using gemini-2.0-flash-exp as it is explicitly enabled in user's console
-    ai = new GoogleGenAI({ apiKey });
+    // Using stable v1 API and flash model
+    ai = new GoogleGenAI({ apiKey, apiVersion: 'v1' });
   }
   return ai;
 };
