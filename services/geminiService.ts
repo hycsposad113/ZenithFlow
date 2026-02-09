@@ -145,7 +145,7 @@ export const generateDailyRitual = async (currentTasks: Task[], events: Calendar
   `;
 
   const response = await getAI().models.generateContent({
-    model: 'gemini-2.0-flash-exp',
+    model: 'gemini-1.5-flash',
     contents: prompt,
     config: {
       systemInstruction: ZENITH_SYSTEM_INSTRUCTION,
@@ -176,7 +176,7 @@ export const analyzeDailyReflection = async (tasks: Task[], knowledgeBase: Knowl
   `;
 
   const response = await getAI().models.generateContent({
-    model: 'gemini-2.0-flash-exp',
+    model: 'gemini-1.5-flash',
     contents: prompt,
     config: {
       systemInstruction: ZENITH_SYSTEM_INSTRUCTION,
@@ -208,7 +208,7 @@ export const synthesizePeriodPerformance = async (insights: any[], period: 'Week
   `;
 
   const response = await getAI().models.generateContent({
-    model: 'gemini-2.0-flash-exp',
+    model: 'gemini-1.5-flash',
     contents: prompt,
     config: {
       systemInstruction: ZENITH_SYSTEM_INSTRUCTION,
@@ -229,7 +229,7 @@ export const analyzeFinancialPeriod = async (transactions: Transaction[], period
   `;
 
   const response = await getAI().models.generateContent({
-    model: 'gemini-2.0-flash-exp',
+    model: 'gemini-1.5-flash',
     contents: prompt,
     config: {
       systemInstruction: ZENITH_SYSTEM_INSTRUCTION,
@@ -250,7 +250,7 @@ export const analyzeTotalFinancialStatus = async (transactions: Transaction[]) =
   `;
 
   const response = await getAI().models.generateContent({
-    model: 'gemini-2.0-flash-exp',
+    model: 'gemini-1.5-flash',
     contents: prompt,
     config: {
       systemInstruction: ZENITH_SYSTEM_INSTRUCTION,
