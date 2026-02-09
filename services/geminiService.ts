@@ -144,15 +144,11 @@ export const generateDailyRitual = async (currentTasks: Task[], events: Calendar
     6. **Output**: Only return the NEW tasks to be added and the unique advice.
   `;
 
-  const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}`;
+  const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}\n\nPlease output STRICTLY valid JSON.`;
 
   const response = await getAI().models.generateContent({
     model: 'gemini-1.5-flash',
-    contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: planResponseSchema
-    }
+    contents: [{ role: 'user', parts: [{ text: fullPrompt }] }]
   });
 
   return parseJSON(response.text || "{}");
@@ -176,15 +172,11 @@ export const analyzeDailyReflection = async (tasks: Task[], knowledgeBase: Knowl
     Quote specific principles from books where relevant.
   `;
 
-  const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}`;
+  const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}\n\nPlease output STRICTLY valid JSON.`;
 
   const response = await getAI().models.generateContent({
     model: 'gemini-1.5-flash',
-    contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: reflectionResponseSchema
-    }
+    contents: [{ role: 'user', parts: [{ text: fullPrompt }] }]
   });
 
   return parseJSON(response.text || "{}");
@@ -209,15 +201,11 @@ export const synthesizePeriodPerformance = async (insights: any[], period: 'Week
     Identify focus-leaks using "Deep Work", and suggest strategic shifts for the next ${period}.
   `;
 
-  const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}`;
+  const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}\n\nPlease output STRICTLY valid JSON.`;
 
   const response = await getAI().models.generateContent({
     model: 'gemini-1.5-flash',
-    contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: periodSynthesisSchema
-    }
+    contents: [{ role: 'user', parts: [{ text: fullPrompt }] }]
   });
 
   return parseJSON(response.text || "{}");
@@ -231,15 +219,11 @@ export const analyzeFinancialPeriod = async (transactions: Transaction[], period
     Focus on pattern recognition and the "Vital Few" vs "Trivial Many".
   `;
 
-  const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}`;
+  const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}\n\nPlease output STRICTLY valid JSON.`;
 
   const response = await getAI().models.generateContent({
     model: 'gemini-1.5-flash',
-    contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: financeAnalysisResponseSchema
-    }
+    contents: [{ role: 'user', parts: [{ text: fullPrompt }] }]
   });
 
   return parseJSON(response.text || "{}");
@@ -253,15 +237,11 @@ export const analyzeTotalFinancialStatus = async (transactions: Transaction[]) =
     Provide a unified status and a specific actionable step.
   `;
 
-  const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}`;
+  const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}\n\nPlease output STRICTLY valid JSON.`;
 
   const response = await getAI().models.generateContent({
     model: 'gemini-1.5-flash',
-    contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: financeAnalysisResponseSchema
-    }
+    contents: [{ role: 'user', parts: [{ text: fullPrompt }] }]
   });
 
   return parseJSON(response.text || "{}");
