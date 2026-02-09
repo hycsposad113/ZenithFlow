@@ -12,8 +12,8 @@ const getAI = () => {
     if (!apiKey) {
       throw new Error("VITE_GEMINI_API_KEY is missing mapping. Please check your .env file.");
     }
-    // Using stable v1 API and flash model
-    ai = new GoogleGenAI({ apiKey, apiVersion: 'v1' });
+    // Reverting to default (v1beta) to access latest models
+    ai = new GoogleGenAI({ apiKey });
   }
   return ai;
 };
@@ -147,7 +147,7 @@ export const generateDailyRitual = async (currentTasks: Task[], events: Calendar
   const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}\n\nPlease output STRICTLY valid JSON.`;
 
   const response = await getAI().models.generateContent({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-1.5-flash-latest',
     contents: [{ role: 'user', parts: [{ text: fullPrompt }] }]
   });
 
@@ -175,7 +175,7 @@ export const analyzeDailyReflection = async (tasks: Task[], knowledgeBase: Knowl
   const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}\n\nPlease output STRICTLY valid JSON.`;
 
   const response = await getAI().models.generateContent({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-1.5-flash-latest',
     contents: [{ role: 'user', parts: [{ text: fullPrompt }] }]
   });
 
@@ -204,7 +204,7 @@ export const synthesizePeriodPerformance = async (insights: any[], period: 'Week
   const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}\n\nPlease output STRICTLY valid JSON.`;
 
   const response = await getAI().models.generateContent({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-1.5-flash-latest',
     contents: [{ role: 'user', parts: [{ text: fullPrompt }] }]
   });
 
@@ -222,7 +222,7 @@ export const analyzeFinancialPeriod = async (transactions: Transaction[], period
   const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}\n\nPlease output STRICTLY valid JSON.`;
 
   const response = await getAI().models.generateContent({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-1.5-flash-latest',
     contents: [{ role: 'user', parts: [{ text: fullPrompt }] }]
   });
 
@@ -240,7 +240,7 @@ export const analyzeTotalFinancialStatus = async (transactions: Transaction[]) =
   const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}\n\nPlease output STRICTLY valid JSON.`;
 
   const response = await getAI().models.generateContent({
-    model: 'gemini-1.5-flash',
+    model: 'gemini-1.5-flash-latest',
     contents: [{ role: 'user', parts: [{ text: fullPrompt }] }]
   });
 
