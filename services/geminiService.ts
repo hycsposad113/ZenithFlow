@@ -146,9 +146,9 @@ export const generateDailyRitual = async (currentTasks: Task[], events: Calendar
 
   const response = await getAI().models.generateContent({
     model: 'gemini-1.5-flash',
-    contents: prompt,
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
     config: {
-      systemInstruction: ZENITH_SYSTEM_INSTRUCTION,
+      systemInstruction: { parts: [{ text: ZENITH_SYSTEM_INSTRUCTION }] },
       responseMimeType: "application/json",
       responseSchema: planResponseSchema
     }
@@ -177,9 +177,9 @@ export const analyzeDailyReflection = async (tasks: Task[], knowledgeBase: Knowl
 
   const response = await getAI().models.generateContent({
     model: 'gemini-1.5-flash',
-    contents: prompt,
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
     config: {
-      systemInstruction: ZENITH_SYSTEM_INSTRUCTION,
+      systemInstruction: { parts: [{ text: ZENITH_SYSTEM_INSTRUCTION }] },
       responseMimeType: "application/json",
       responseSchema: reflectionResponseSchema
     }
@@ -209,9 +209,9 @@ export const synthesizePeriodPerformance = async (insights: any[], period: 'Week
 
   const response = await getAI().models.generateContent({
     model: 'gemini-1.5-flash',
-    contents: prompt,
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
     config: {
-      systemInstruction: ZENITH_SYSTEM_INSTRUCTION,
+      systemInstruction: { parts: [{ text: ZENITH_SYSTEM_INSTRUCTION }] },
       responseMimeType: "application/json",
       responseSchema: periodSynthesisSchema
     } // ... rest of config
@@ -230,9 +230,9 @@ export const analyzeFinancialPeriod = async (transactions: Transaction[], period
 
   const response = await getAI().models.generateContent({
     model: 'gemini-1.5-flash',
-    contents: prompt,
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
     config: {
-      systemInstruction: ZENITH_SYSTEM_INSTRUCTION,
+      systemInstruction: { parts: [{ text: ZENITH_SYSTEM_INSTRUCTION }] },
       responseMimeType: "application/json",
       responseSchema: financeAnalysisResponseSchema
     }
@@ -251,9 +251,9 @@ export const analyzeTotalFinancialStatus = async (transactions: Transaction[]) =
 
   const response = await getAI().models.generateContent({
     model: 'gemini-1.5-flash',
-    contents: prompt,
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
     config: {
-      systemInstruction: ZENITH_SYSTEM_INSTRUCTION,
+      systemInstruction: { parts: [{ text: ZENITH_SYSTEM_INSTRUCTION }] },
       responseMimeType: "application/json",
       responseSchema: financeAnalysisResponseSchema
     }
