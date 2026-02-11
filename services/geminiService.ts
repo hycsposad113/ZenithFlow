@@ -154,13 +154,14 @@ export const generateDailyRitual = async (currentTasks: Task[], events: Calendar
              "title": "Task Name",
              "startTime": "HH:MM",
              "durationMinutes": 30, // integer
-             "isEssential": true // boolean
+             "isEssential": true, // boolean
+             "type": "Self Study" // Enum: 'Self Study', 'Lecture', 'English Speaking', 'AI Practice', 'Crypto Analysis', 'Other'
            }
          ]
        }
   `;
 
-  const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}\n\nPlease output STRICTLY valid JSON following the structure above.`;
+  const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}\n\nPlease output STRICTLY valid JSON following the structure above. Ensure 'type' matches the Enum exactly.`;
 
   const response = await getAI().models.generateContent({
     model: 'gemini-2.0-flash',
