@@ -141,10 +141,22 @@ export const generateDailyRitual = async (currentTasks: Task[], events: Calendar
        - Learning & Mastery (Deep Work)
        - Energy Management
        - Interpersonal Synergy
-    6. **Output**: Only return the NEW tasks to be added and the unique advice.
+    6. **Output Format (CRITICAL)**:
+       Return STRICTLY valid JSON with this exact structure:
+       {
+         "advice": "Your generated mantra string here",
+         "tasks": [
+           {
+             "title": "Task Name",
+             "startTime": "HH:MM",
+             "durationMinutes": 30, // integer
+             "isEssential": true // boolean
+           }
+         ]
+       }
   `;
 
-  const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}\n\nPlease output STRICTLY valid JSON.`;
+  const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}\n\nPlease output STRICTLY valid JSON following the structure above.`;
 
   const response = await getAI().models.generateContent({
     model: 'gemini-2.0-flash',
