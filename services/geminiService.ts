@@ -147,7 +147,7 @@ export const generateDailyRitual = async (currentTasks: Task[], events: Calendar
   const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}\n\nPlease output STRICTLY valid JSON.`;
 
   const response = await getAI().models.generateContent({
-    model: 'gemini-1.5-flash-latest',
+    model: 'gemini-2.0-flash',
     contents: [{ role: 'user', parts: [{ text: fullPrompt }] }]
   });
 
@@ -175,7 +175,7 @@ export const analyzeDailyReflection = async (tasks: Task[], knowledgeBase: Knowl
   const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}\n\nPlease output STRICTLY valid JSON.`;
 
   const response = await getAI().models.generateContent({
-    model: 'gemini-1.5-flash-latest',
+    model: 'gemini-2.0-flash',
     contents: [{ role: 'user', parts: [{ text: fullPrompt }] }]
   });
 
@@ -204,7 +204,7 @@ export const synthesizePeriodPerformance = async (insights: any[], period: 'Week
   const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}\n\nPlease output STRICTLY valid JSON.`;
 
   const response = await getAI().models.generateContent({
-    model: 'gemini-1.5-flash-latest',
+    model: 'gemini-2.0-flash',
     contents: [{ role: 'user', parts: [{ text: fullPrompt }] }]
   });
 
@@ -222,7 +222,7 @@ export const analyzeFinancialPeriod = async (transactions: Transaction[], period
   const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}\n\nPlease output STRICTLY valid JSON.`;
 
   const response = await getAI().models.generateContent({
-    model: 'gemini-1.5-flash-latest',
+    model: 'gemini-2.0-flash',
     contents: [{ role: 'user', parts: [{ text: fullPrompt }] }]
   });
 
@@ -240,7 +240,7 @@ export const analyzeTotalFinancialStatus = async (transactions: Transaction[]) =
   const fullPrompt = `${ZENITH_SYSTEM_INSTRUCTION}\n\n${prompt}\n\nPlease output STRICTLY valid JSON.`;
 
   const response = await getAI().models.generateContent({
-    model: 'gemini-1.5-flash-latest',
+    model: 'gemini-2.0-flash',
     contents: [{ role: 'user', parts: [{ text: fullPrompt }] }]
   });
 
