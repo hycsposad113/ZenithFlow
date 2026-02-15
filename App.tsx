@@ -739,20 +739,27 @@ const App: React.FC = () => {
                 />
               </div>
             )}
-            {currentTab === Tab.FOCUS && (
-              <div className="w-full h-full">
-                <FocusTab
-                  totalFocusMinutes={totalFocusMinutes}
-                  setTotalFocusMinutes={updateFocusMinutes}
-                  timeLeft={timeLeft}
-                  setTimeLeft={setTimeLeft}
-                  isActive={isTimerActive}
-                  setIsActive={setIsTimerActive}
-                  sessionCount={timerSessionCount}
-                  setSessionCount={setTimerSessionCount}
-                />
-              </div>
-            )}
+            {currentTab === Tab.FOCUS && (() => {
+              const todayStr = getLocalDate();
+              const todayStats = dailyStats[todayStr];
+              const todayFocusStats = todayStats?.focusMinutes || 0;
+              const todaySessionCycles = Math.floor(todayFocusStats / 25);
+
+              return (
+                <div className="w-full h-full">
+                  <FocusTab
+                    totalFocusMinutes={todayFocusStats}
+                    setTotalFocusMinutes={updateFocusMinutes}
+                    timeLeft={timeLeft}
+                    setTimeLeft={setTimeLeft}
+                    isActive={isTimerActive}
+                    setIsActive={setIsTimerActive}
+                    sessionCount={todaySessionCycles}
+                    setSessionCount={setTimerSessionCount}
+                  />
+                </div>
+              );
+            })()}
             {currentTab === Tab.TODO && (
               <div className="w-full h-full">
                 <TodoTab
