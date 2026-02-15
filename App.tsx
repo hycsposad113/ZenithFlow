@@ -111,7 +111,9 @@ const App: React.FC = () => {
   const bgMusicRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    bgMusicRef.current = new Audio('/sounds/focus-loop.mp3');
+    // Use BASE_URL to handle GitHub Pages subdirectory path
+    const audioPath = `${import.meta.env.BASE_URL}sounds/focus-loop.mp3`;
+    bgMusicRef.current = new Audio(audioPath);
     bgMusicRef.current.loop = true;
     bgMusicRef.current.volume = 0.5;
 
