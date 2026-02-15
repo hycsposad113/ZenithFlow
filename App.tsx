@@ -142,8 +142,9 @@ const App: React.FC = () => {
       updateFocusMinutes((prev: number) => prev + 25);
       setTimerSessionCount((prev) => prev + 1);
       // Play sound
-      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-      audio.play().catch(e => console.log('Audio play failed', e));
+      // Play sound
+      // const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      // audio.play().catch(e => console.log('Audio play failed', e));
       setTimeLeft(25 * 60);
     }
   }, [timeLeft, isTimerActive]);
