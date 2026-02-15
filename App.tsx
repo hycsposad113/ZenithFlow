@@ -107,6 +107,33 @@ const App: React.FC = () => {
     };
   }, [isTimerActive]);
 
+  // Background Music Logic
+  const bgMusicRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    bgMusicRef.current = new Audio('/sounds/focus-loop.mp3');
+    bgMusicRef.current.loop = true;
+    bgMusicRef.current.volume = 0.5;
+
+    return () => {
+      if (bgMusicRef.current) {
+        bgMusicRef.current.pause();
+        bgMusicRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (bgMusicRef.current) {
+      if (isTimerActive) {
+        bgMusicRef.current.play().catch(e => console.error("Background music play failed:", e));
+      } else {
+        bgMusicRef.current.pause();
+        bgMusicRef.current.currentTime = 0; // Reset on stop
+      }
+    }
+  }, [isTimerActive]);
+
   useEffect(() => {
     if (timeLeft === 0 && isTimerActive) {
       setIsTimerActive(false);
