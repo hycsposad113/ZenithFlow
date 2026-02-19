@@ -3,14 +3,17 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { ZENITH_SYSTEM_INSTRUCTION } from "../constants";
 import { Task, Transaction, KnowledgeItem, CalendarEvent } from "../types";
 
-// Initialize lazily to prevent crash if key is missing on load
 let ai: GoogleGenAI | null = null;
 const getAI = () => {
   if (!ai) {
-    // Fallback to empty string but warn
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    let apiKey = localStorage.getItem('GEMINI_API_KEY');
     if (!apiKey) {
-      throw new Error("VITE_GEMINI_API_KEY is missing mapping. Please check your .env file.");
+      apiKey = prompt("為避免 API Key 寫死在程式碼中被打包外洩，請在此輸入您的 Gemini API Key：\n(金鑰將安全地儲存在您的瀏覽器 local storage 中，不會上傳！)");
+      if (apiKey) {
+        localStorage.setItem('GEMINI_API_KEY', apiKey);
+      } else {
+        throw new Error("Gemini API Key missing.");
+      }
     }
     // Reverting to default (v1beta) to access latest models
     ai = new GoogleGenAI({ apiKey });
